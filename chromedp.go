@@ -16,8 +16,8 @@ import (
 
 	"github.com/chromedp/cdproto/cdp"
 
-	"github.com/chromedp/chromedp/client"
-	"github.com/chromedp/chromedp/runner"
+	"MsBeegoBackEnd/packages/xing/chromedp/client"
+	"MsBeegoBackEnd/packages/xing/chromedp/runner"
 )
 
 const (
