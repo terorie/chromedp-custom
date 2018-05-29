@@ -1,5 +1,7 @@
 # About chromedp [![Build Status][1]][2] [![Coverage Status][3]][4]
 
+This is a fork of chromedp [28.05.2018] with a litte fix to the runner/runner.go Shutdown() method, to force quit chrome on a AWS ubuntu webserver. Watch out original [repo][12]
+
 Package chromedp is a faster, simpler way to drive browsers in Go using the
 [Chrome Debugging Protocol][5] (for Chrome, Edge, Safari, etc) without external
 dependencies (ie, Selenium, PhantomJS, etc).
@@ -129,3 +131,4 @@ Please see the [examples][6] project for more examples. Please refer to the
 [9]: https://godoc.org/github.com/chromedp/cdproto
 [10]: https://github.com/chromedp/cdproto-gen
 [11]: https://github.com/chromedp/chromedp-proxy
+[12]: https://github.com/chromedp/chromedp/
