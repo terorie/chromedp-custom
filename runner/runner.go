@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/chucnorrisful/chromedp/client"
 )
@@ -165,6 +166,8 @@ func (r *Runner) Start(ctxt context.Context) error {
 			}
 		}
 	}
+
+	spew.Dump(r.cmd.Args, r.cmd.Path)
 
 	// start process
 	err = r.cmd.Start()
