@@ -632,7 +632,7 @@ func (h *TargetHandler) domEvent(ctxt context.Context, ev interface{}) {
 
 	default:
 		h.errf("unhandled node event %s", reflect.TypeOf(ev))
-		return
+
 	}
 
 	// retrieve node
