@@ -50,7 +50,6 @@ func New(opts ...CommandLineOption) (*Runner, error) {
 		for k, v := range map[string]interface{}{
 			"no-first-run":             true,
 			"no-default-browser-check": true,
-			"remote-debugging-port":    9222,
 		} {
 			if _, ok := cliOpts[k]; !ok {
 				cliOpts[k] = v
@@ -225,7 +224,7 @@ func (r *Runner) Shutdown(ctxt context.Context, opts ...client.Option) error {
 	}
 
 	//HACKED
-	if  r.cmd != nil && r.cmd.Process != nil {
+	if r.cmd != nil && r.cmd.Process != nil {
 		return r.cmd.Process.Signal(syscall.SIGTERM)
 	}
 
