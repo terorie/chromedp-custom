@@ -23,11 +23,8 @@ import (
 const (
 	// DefaultNewTargetTimeout is the default time to wait for a new target to
 	// be started.
-<<<<<<< HEAD
+
 	DefaultNewTargetTimeout = 5 * time.Second
-=======
-	DefaultNewTargetTimeout = 4 * time.Second
->>>>>>> 7d18db4332524418795c104202b16f3055fe52bc
 
 	// DefaultCheckDuration is the default time to sleep between a check.
 	DefaultCheckDuration = 50 * time.Millisecond
