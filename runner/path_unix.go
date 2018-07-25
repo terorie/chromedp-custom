@@ -12,6 +12,7 @@ const (
 
 // chromeNames are the Chrome executable names to search for in the path.
 var chromeNames = []string{
+	"google-chrome-stable",
 	"google-chrome",
 	"chromium-browser",
 	"chromium",
