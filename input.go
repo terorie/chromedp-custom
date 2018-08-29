@@ -46,6 +46,11 @@ func MouseClickXY(x, y int64, opts ...MouseOption) Action {
 			return err
 		}
 
+		slErr := Sleep(time.Second).Do(ctxt, h)
+		if slErr != nil {
+			return slErr
+		}
+
 		me.Type = input.MouseReleased
 		return me.Do(ctxt, h)
 	})
