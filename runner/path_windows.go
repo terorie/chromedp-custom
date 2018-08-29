@@ -8,6 +8,7 @@ const (
 	// DefaultChromePath is the default path to use for Google Chrome if the
 	// executable is not in %PATH%.
 	DefaultChromePath = `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`
+	DefaultCanaryPath = `C:\Users\TEST\AppData\Local\Google\Chrome SxS\Application\chrome.exe`
 
 	// DefaultEdgeDiagnosticsAdapterPath is the default path to use for the
 	// Microsoft Edge Diagnostics Adapter if the executable is not in %PATH%.
@@ -15,12 +16,12 @@ const (
 )
 
 func findChromePath() string {
-	path, err := exec.LookPath(`chrome.exe`)
-	if err == nil {
-		return path
-	}
+	//path, err := exec.LookPath(`Application\chrome.exe`)
+	//if err == nil {
+	//	return path
+	//}
 
-	return DefaultChromePath
+	return DefaultCanaryPath
 }
 
 func findEdgePath() string {
