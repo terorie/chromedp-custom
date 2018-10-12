@@ -43,7 +43,7 @@ func TestMouseClickXY(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		err = c.Run(defaultContext, MouseClickXY(test.x, test.y))
+		err = c.Run(defaultContext, MouseClickXY(test.x, test.y, time.Second))
 		if err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}

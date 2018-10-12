@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/disintegration/imaging"
 
@@ -376,6 +377,17 @@ func Click(sel interface{}, opts ...QueryOption) Action {
 		}
 
 		return MouseClickNode(nodes[0]).Do(ctxt, h)
+	}, append(opts, NodeVisible)...)
+}
+
+// ClickWait is Click with the button pressed for a duration of wait.
+func ClickWait(sel interface{}, wait time.Duration, opts ...QueryOption) Action {
+	return QueryAfter(sel, func(ctxt context.Context, h *TargetHandler, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector `%s` did not return any nodes", sel)
+		}
+
+		return MouseClickNodeWait(nodes[0], wait).Do(ctxt, h)
 	}, append(opts, NodeVisible)...)
 }
 
