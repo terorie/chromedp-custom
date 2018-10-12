@@ -77,6 +77,7 @@ func New(opts ...CommandLineOption) (*Runner, error) {
 		for k, v := range map[string]interface{}{
 			"no-first-run":             true,
 			"no-default-browser-check": true,
+			"remote-debugging-port":    9222,
 		} {
 			if _, ok := cliOpts[k]; !ok {
 				cliOpts[k] = v
