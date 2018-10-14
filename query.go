@@ -435,6 +435,16 @@ func SendKeys(sel interface{}, v string, opts ...QueryOption) Action {
 	}, append(opts, NodeVisible)...)
 }
 
+// SendKeysSlow is like SendKeys but sleeps for waitTime() between key presses
+func SendKeysSlow(sel string, s string, waitTime func() time.Duration) (t chromedp.Tasks) {
+	for _, char := range s {
+		t = append(t,
+			chromedp.Sleep(waitTime()),
+			chromedp.SendKeys(sel, string(char)))
+	}
+	return
+}
+
 // SetUploadFiles sets the files to upload (ie, for a input[type="file"] node)
 // for the first node matching the selector.
 func SetUploadFiles(sel interface{}, files []string, opts ...QueryOption) Action {
