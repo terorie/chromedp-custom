@@ -435,12 +435,12 @@ func SendKeys(sel interface{}, v string, opts ...QueryOption) Action {
 	}, append(opts, NodeVisible)...)
 }
 
-// SendKeysSlow is like SendKeys but sleeps for waitTime() between key presses
-func SendKeysSlow(sel string, s string, waitTime func() time.Duration) (t chromedp.Tasks) {
+// SendKeysWait is like SendKeys but sleeps for waitTime() between key presses
+func SendKeysWait(sel string, s string, waitTime func() time.Duration) (t Tasks) {
 	for _, char := range s {
 		t = append(t,
-			chromedp.Sleep(waitTime()),
-			chromedp.SendKeys(sel, string(char)))
+			Sleep(waitTime()),
+			SendKeys(sel, string(char)))
 	}
 	return
 }
