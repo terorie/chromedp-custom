@@ -26,7 +26,7 @@ func MouseAction(typ input.MouseType, x, y int64, opts ...MouseOption) Action {
 
 // MouseClickXY sends a left mouse button click (ie, mousePressed and
 // mouseReleased event) at the X, Y location.
-func MouseClickXY(x, y int64, wait time.Duration, opts ...MouseOption) Action {
+func MouseClickXY(x, y int64, opts ...MouseOption) Action {
 	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
 		me := &input.DispatchMouseEventParams{
 			Type:       input.MousePressed,
@@ -46,7 +46,7 @@ func MouseClickXY(x, y int64, wait time.Duration, opts ...MouseOption) Action {
 			return err
 		}
 
-		slErr := Sleep(wait).Do(ctxt, h)
+		slErr := Sleep(time.Millisecond * 200).Do(ctxt, h)
 		if slErr != nil {
 			return slErr
 		}
@@ -95,7 +95,7 @@ func MouseClickNodeWait(n *cdp.Node, wait time.Duration, opts ...MouseOption) Ac
 		x /= int64(c / 2)
 		y /= int64(c / 2)
 
-		return MouseClickXY(x, y, wait, opts...).Do(ctxt, h)
+		return MouseClickXY(x, y, opts...).Do(ctxt, h)
 	})
 }
 
