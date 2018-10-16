@@ -391,6 +391,28 @@ func ClickWait(sel interface{}, wait time.Duration, opts ...QueryOption) Action 
 	}, append(opts, NodeVisible)...)
 }
 
+// Touch sends a mouse click event to the first node matching the selector.
+func Touch(sel interface{}, opts ...QueryOption) Action {
+	return QueryAfter(sel, func(ctxt context.Context, h *TargetHandler, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector `%s` did not return any nodes", sel)
+		}
+
+		return TouchNode(nodes[0]).Do(ctxt, h)
+	}, append(opts, NodeVisible)...)
+}
+
+// TouchWait is Touch with the button pressed for a duration of wait.
+func TouchWait(sel interface{}, wait time.Duration, opts ...QueryOption) Action {
+	return QueryAfter(sel, func(ctxt context.Context, h *TargetHandler, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector `%s` did not return any nodes", sel)
+		}
+
+		return TouchNodeWait(nodes[0], wait).Do(ctxt, h)
+	}, append(opts, NodeVisible)...)
+}
+
 // DoubleClick sends a mouse double click event to the first node matching the
 // selector.
 func DoubleClick(sel interface{}, opts ...QueryOption) Action {
