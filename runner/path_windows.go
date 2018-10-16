@@ -15,6 +15,18 @@ const (
 	DefaultEdgeDiagnosticsAdapterPath = `c:\Edge\EdgeDiagnosticsAdapter\x64\EdgeDiagnosticsAdapter.exe`
 )
 
+// DefaultChromeNames are the default Chrome executable names to look for in
+// $PATH.
+var DefaultChromeNames = []string{
+	"google-chrome-stable",
+	"google-chrome",
+	"chrome",
+	"chromium-browser",
+	"chromium",
+	"google-chrome-beta",
+	"google-chrome-unstable",
+}
+
 func findChromePath() string {
 	//path, err := exec.LookPath(`Application\chrome.exe`)
 	//if err == nil {
