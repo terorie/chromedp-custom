@@ -3,6 +3,7 @@ package chromedp
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -11,6 +12,80 @@ import (
 
 	"github.com/chucnorrisful/chromedp/kb"
 )
+
+var touchCounter int64 = 0
+
+func genTouchID() float64 {
+	touchID := atomic.AddInt64(&touchCounter, 1)
+	return float64(touchID)
+}
+
+func TouchXY(x, y int64, wait time.Duration) Action {
+	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
+		me := &input.DispatchTouchEventParams{
+			Type: input.TouchStart,
+			TouchPoints: []*input.TouchPoint{{
+				X: float64(x),
+				Y: float64(y),
+				RadiusX: 1,
+				RadiusY: 1,
+				RotationAngle: 0,
+				Force: 1,
+				ID: genTouchID(),
+			}},
+		}
+
+		err := me.Do(ctxt, h)
+		if err != nil {
+			return err
+		}
+
+		slErr := Sleep(wait).Do(ctxt, h)
+		if slErr != nil {
+			return slErr
+		}
+
+		me.Type = input.TouchEnd
+		return me.Do(ctxt, h)
+	})
+}
+
+func TouchNode(n *cdp.Node) Action {
+	return TouchNodeWait(n, 0)
+}
+
+// TODO Merge with MouseClickNodeWait
+func TouchNodeWait(n *cdp.Node, wait time.Duration) Action {
+	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
+		var err error
+
+		var pos []int
+		err = EvaluateAsDevTools(fmt.Sprintf(scrollIntoViewJS, n.FullXPath()), &pos).Do(ctxt, h)
+		if err != nil {
+			return err
+		}
+
+		box, err := dom.GetBoxModel().WithNodeID(n.NodeID).Do(ctxt, h)
+		if err != nil {
+			return err
+		}
+
+		c := len(box.Content)
+		if c%2 != 0 || c < 1 {
+			return ErrInvalidDimensions
+		}
+
+		var x, y int64
+		for i := 0; i < c; i += 2 {
+			x += int64(box.Content[i])
+			y += int64(box.Content[i+1])
+		}
+		x /= int64(c / 2)
+		y /= int64(c / 2)
+
+		return MouseClickXY(x, y, wait).Do(ctxt, h)
+	})
+}
 
 // MouseAction is a mouse action.
 func MouseAction(typ input.MouseType, x, y int64, opts ...MouseOption) Action {
