@@ -14,13 +14,13 @@ import (
 )
 
 var touchCounter int64 = 0
-
+// genTouchID is a thread-safe generator for unique touch IDs
 func genTouchID() float64 {
 	touchID := atomic.AddInt64(&touchCounter, 1)
 	return float64(touchID)
 }
 
-func TouchXY(x, y int64, wait time.Duration) Action {
+func TouchXYWait(x, y int64, wait time.Duration) Action {
 	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
 		me := &input.DispatchTouchEventParams{
 			Type: input.TouchStart,
@@ -50,8 +50,12 @@ func TouchXY(x, y int64, wait time.Duration) Action {
 	})
 }
 
+func TouchXY(x, y int64) Action {
+	return TouchXYWait(x, y, 200 * time.Millisecond)
+}
+
 func TouchNode(n *cdp.Node) Action {
-	return TouchNodeWait(n, 0)
+	return TouchNodeWait(n, 200 * time.Millisecond)
 }
 
 // TODO Merge with MouseClickNodeWait
@@ -83,7 +87,7 @@ func TouchNodeWait(n *cdp.Node, wait time.Duration) Action {
 		x /= int64(c / 2)
 		y /= int64(c / 2)
 
-		return MouseClickXY(x, y, wait).Do(ctxt, h)
+		return MouseClickXYWait(x, y, wait).Do(ctxt, h)
 	})
 }
 
@@ -102,6 +106,10 @@ func MouseAction(typ input.MouseType, x, y int64, opts ...MouseOption) Action {
 // MouseClickXY sends a left mouse button click (ie, mousePressed and
 // mouseReleased event) at the X, Y location.
 func MouseClickXY(x, y int64, opts ...MouseOption) Action {
+	return MouseClickXYWait(x, y, 200 * time.Millisecond, opts...)
+}
+
+func MouseClickXYWait(x, y int64, wait time.Duration, opts ...MouseOption) Action {
 	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
 		me := &input.DispatchMouseEventParams{
 			Type:       input.MousePressed,
@@ -121,7 +129,7 @@ func MouseClickXY(x, y int64, opts ...MouseOption) Action {
 			return err
 		}
 
-		slErr := Sleep(time.Millisecond * 200).Do(ctxt, h)
+		slErr := Sleep(wait).Do(ctxt, h)
 		if slErr != nil {
 			return slErr
 		}
