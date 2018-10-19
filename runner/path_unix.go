@@ -2,7 +2,7 @@
 
 package runner
 
-import "os/exec"
+//import "os/exec"
 
 const (
 	// DefaultChromePath is the default path to use for Chrome if the
@@ -22,12 +22,12 @@ var DefaultChromeNames = []string{
 }
 
 func findChromePath() string {
-	for _, p := range chromeNames {
-		path, err := exec.LookPath(p)
-		if err == nil {
-			return path
-		}
-	}
+	//for _, p := range chromeNames {
+	//	path, err := exec.LookPath(p)
+	//	if err == nil {
+	//		return path
+	//	}
+	//}
 
 	return DefaultChromePath
 }
