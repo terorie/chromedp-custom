@@ -2,6 +2,8 @@
 
 package runner
 
+import "os/exec"
+
 const (
 	// DefaultChromePath is the default path to use for Chrome if the
 	// executable is not in $PATH.
