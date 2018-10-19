@@ -46,6 +46,7 @@ func TouchXYWait(x, y int64, wait time.Duration) Action {
 		}
 
 		me.Type = input.TouchEnd
+		me.TouchPoints = nil
 		return me.Do(ctxt, h)
 	})
 }
@@ -87,7 +88,7 @@ func TouchNodeWait(n *cdp.Node, wait time.Duration) Action {
 		x /= int64(c / 2)
 		y /= int64(c / 2)
 
-		return MouseClickXYWait(x, y, wait).Do(ctxt, h)
+		return TouchXYWait(x, y, wait).Do(ctxt, h)
 	})
 }
 
