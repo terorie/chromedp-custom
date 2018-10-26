@@ -545,6 +545,8 @@ func (h *TargetHandler) pageEvent(ctxt context.Context, ev interface{}) {
 		return
 	case *page.EventLifecycleEvent:
 		return
+	case *page.EventNavigatedWithinDocument:
+		return
 
 	default:
 		h.errf("unhandled page event %s", reflect.TypeOf(ev))
