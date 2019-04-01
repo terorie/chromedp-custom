@@ -249,7 +249,12 @@ func (h *TargetHandler) processEvent(ctxt context.Context, msg *cdproto.Message)
 	case *inspector.EventDetached:
 		h.Lock()
 		defer h.Unlock()
-		h.detached <- e
+		select {
+			case <-ctxt.Done():
+				return fmt.Errorf("processEvent deadlock")
+			case h.detached <- e:
+				break
+		}
 		return nil
 
 	case *dom.EventDocumentUpdated:
@@ -358,10 +363,14 @@ func (h *TargetHandler) Execute(ctxt context.Context, methodType string, params 
 	h.resrw.Unlock()
 
 	// queue message
-	h.qcmd <- &cdproto.Message{
-		ID:     id,
-		Method: cdproto.MethodType(methodType),
-		Params: paramsBuf,
+	select {
+	case <-ctxt.Done():
+		return fmt.Errorf("target handler failed")
+	case h.qcmd <- &cdproto.Message{
+			ID:     id,
+			Method: cdproto.MethodType(methodType),
+			Params: paramsBuf,
+		}: break
 	}
 
 	errch := make(chan error, 1)
