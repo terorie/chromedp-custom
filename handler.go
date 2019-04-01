@@ -8,6 +8,7 @@ import (
 	goruntime "runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mailru/easyjson"
@@ -23,6 +24,8 @@ import (
 
 	"github.com/chucnorrisful/chromedp/client"
 )
+
+var globalAbort int32
 
 // TargetHandler manages a Chrome DevTools Protocol target.
 type TargetHandler struct {
@@ -151,6 +154,8 @@ func (h *TargetHandler) run(ctxt context.Context) {
 			default:
 				msg, err := h.read()
 				if err != nil {
+					println("Failed to read message ", err.Error())
+					atomic.StoreInt32(&globalAbort, 1)
 					return
 				}
 
@@ -343,6 +348,10 @@ var emptyObj = easyjson.RawMessage([]byte(`{}`))
 // Execute executes commandType against the endpoint passed to Run, using the
 // provided context and params, decoding the result of the command to res.
 func (h *TargetHandler) Execute(ctxt context.Context, methodType string, params json.Marshaler, res json.Unmarshaler) error {
+	if atomic.LoadInt32(&globalAbort) != 0 {
+		return fmt.Errorf("🦀🦀chromedp is gone🦀🦀")
+	}
+
 	var paramsBuf easyjson.RawMessage
 	if params == nil {
 		paramsBuf = emptyObj
