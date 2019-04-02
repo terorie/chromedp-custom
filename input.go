@@ -3,12 +3,13 @@ package chromedp
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/input"
 
-	"github.com/chromedp/chromedp/kb"
+	"github.com/chucnorrisful/chromedp/kb"
 )
 
 // MouseAction is a mouse action.
@@ -26,6 +27,10 @@ func MouseAction(typ input.MouseType, x, y int64, opts ...MouseOption) Action {
 // MouseClickXY sends a left mouse button click (ie, mousePressed and
 // mouseReleased event) at the X, Y location.
 func MouseClickXY(x, y int64, opts ...MouseOption) Action {
+	return MouseClickXYWait(x, y, 200 * time.Millisecond, opts...)
+}
+
+func MouseClickXYWait(x, y int64, wait time.Duration, opts ...MouseOption) Action {
 	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
 		me := &input.DispatchMouseEventParams{
 			Type:       input.MousePressed,
@@ -44,6 +49,11 @@ func MouseClickXY(x, y int64, opts ...MouseOption) Action {
 			return err
 		}
 
+		slErr := Sleep(wait).Do(ctx, h)
+		if slErr != nil {
+			return slErr
+		}
+
 		me.Type = input.MouseReleased
 		return me.Do(ctx, h)
 	})
@@ -54,7 +64,7 @@ func MouseClickXY(x, y int64, opts ...MouseOption) Action {
 //
 // Note that the window will be scrolled if the node is not within the window's
 // viewport.
-func MouseClickNode(n *cdp.Node, opts ...MouseOption) Action {
+func MouseClickNode(n *cdp.Node, wait time.Duration, opts ...MouseOption) Action {
 	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
 		var pos []int
 		err := EvaluateAsDevTools(fmt.Sprintf(scrollIntoViewJS, n.FullXPath()), &pos).Do(ctx, h)
@@ -80,7 +90,7 @@ func MouseClickNode(n *cdp.Node, opts ...MouseOption) Action {
 		x /= int64(c / 2)
 		y /= int64(c / 2)
 
-		return MouseClickXY(x, y, opts...).Do(ctx, h)
+		return MouseClickXYWait(x, y, wait, opts...).Do(ctx, h)
 	})
 }
 

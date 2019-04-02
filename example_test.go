@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/chromedp/chromedp"
+	"github.com/chucnorrisful/chromedp"
 )
 
 func ExampleTitle() {

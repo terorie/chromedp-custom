@@ -20,6 +20,7 @@ import (
 type Target struct {
 	browser   *Browser
 	SessionID target.SessionID
+	OnEvent   EventFunc
 
 	waitQueue  chan func(cur *cdp.Frame) bool
 	eventQueue chan *cdproto.Message
@@ -146,6 +147,9 @@ func (t *Target) processEvent(ctx context.Context, msg *cdproto.Message) error {
 	if err != nil {
 		return err
 	}
+	if t.OnEvent != nil {
+		t.OnEvent(ev)
+	}
 
 	switch ev.(type) {
 	case *inspector.EventDetached:
@@ -226,6 +230,8 @@ func (t *Target) pageEvent(ev interface{}) {
 	case *page.EventFrameResized:
 		return
 	case *page.EventLifecycleEvent:
+		return
+	case *page.EventNavigatedWithinDocument:
 		return
 
 	default:
@@ -317,3 +323,6 @@ func (t *Target) domEvent(ev interface{}) {
 }
 
 type TargetOption func(*Target)
+
+// EventFunc is a type for a function that accepts browser events.
+type EventFunc func(ev interface{})

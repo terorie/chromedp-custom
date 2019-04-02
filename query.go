@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/disintegration/imaging"
 
@@ -375,9 +376,21 @@ func Click(sel interface{}, opts ...QueryOption) Action {
 			return fmt.Errorf("selector `%s` did not return any nodes", sel)
 		}
 
-		return MouseClickNode(nodes[0]).Do(ctx, h)
+		return MouseClickNode(nodes[0], 200 * time.Millisecond).Do(ctx, h)
 	}, append(opts, NodeVisible)...)
 }
+
+// ClickWait is Click with the button pressed for a duration of wait.
+func ClickWait(sel interface{}, wait time.Duration, opts ...QueryOption) Action {
+	return QueryAfter(sel, func(ctxt context.Context, h *Target, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector `%s` did not return any nodes", sel)
+		}
+
+		return MouseClickNode(nodes[0], wait).Do(ctxt, h)
+	}, append(opts, NodeVisible)...)
+}
+
 
 // DoubleClick sends a mouse double click event to the first node matching the
 // selector.
@@ -387,7 +400,7 @@ func DoubleClick(sel interface{}, opts ...QueryOption) Action {
 			return fmt.Errorf("selector `%s` did not return any nodes", sel)
 		}
 
-		return MouseClickNode(nodes[0], ClickCount(2)).Do(ctx, h)
+		return MouseClickNode(nodes[0], 350 * time.Millisecond, ClickCount(2)).Do(ctx, h)
 	}, append(opts, NodeVisible)...)
 }
 
@@ -421,6 +434,16 @@ func SendKeys(sel interface{}, v string, opts ...QueryOption) Action {
 
 		return KeyActionNode(n, v).Do(ctx, h)
 	}, append(opts, NodeVisible)...)
+}
+
+// SendKeysWait is like SendKeys but sleeps for waitTime() between key presses
+func SendKeysWait(sel string, s string, waitTime func() time.Duration) (t Tasks) {
+	for _, char := range s {
+		t = append(t,
+			Sleep(waitTime()),
+			SendKeys(sel, string(char)))
+	}
+	return
 }
 
 // SetUploadFiles sets the files to upload (ie, for a input[type="file"] node)

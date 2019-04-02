@@ -18,7 +18,7 @@ import (
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/emulation"
 
-	"github.com/chromedp/chromedp/kb"
+	"github.com/chucnorrisful/chromedp/kb"
 )
 
 func TestNodes(t *testing.T) {
