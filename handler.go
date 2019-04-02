@@ -3,6 +3,7 @@ package chromedp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/target"
 )
+
+var globalAbort int32
 
 // Target manages a Chrome DevTools Protocol target.
 type Target struct {
@@ -45,6 +48,7 @@ func (t *Target) run(ctx context.Context) {
 		case msg := <-t.eventQueue:
 			if err := t.processEvent(ctx, msg); err != nil {
 				t.errf("could not process event: %v", err)
+				atomic.StoreInt32(&globalAbort, 1)
 				continue
 			}
 		default:
@@ -70,6 +74,10 @@ func (t *Target) run(ctx context.Context) {
 }
 
 func (t *Target) Execute(ctx context.Context, method string, params json.Marshaler, res json.Unmarshaler) error {
+	if atomic.LoadInt32(&globalAbort) != 0 {
+		return fmt.Errorf("🦀🦀chromedp is gone🦀🦀")
+	}
+
 	paramsMsg := emptyObj
 	if params != nil {
 		var err error
