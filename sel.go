@@ -62,15 +62,13 @@ func (s *Selector) Do(ctxt context.Context, h cdp.Executor) error {
 		return ErrInvalidHandler
 	}
 
-	// TODO: fix this
-	ctxt, cancel := context.WithTimeout(ctxt, 100*time.Second)
-	defer cancel()
-
 	var err error
 	select {
 	case err = <-s.run(ctxt, th):
 	case <-ctxt.Done():
 		err = ctxt.Err()
+	case <-time.After(15 * time.Second):
+		return fmt.Errorf("chromedp hang")
 	}
 
 	return err
