@@ -239,8 +239,8 @@ func (b *Browser) run(ctx context.Context) {
 					browser:   b,
 					SessionID: sessionID,
 
-					eventQueue: make(chan *cdproto.Message, 1024),
-					waitQueue:  make(chan func(cur *cdp.Frame) bool, 1024),
+					eventQueue: make(chan *cdproto.Message, 999999),
+					waitQueue:  make(chan func(cur *cdp.Frame) bool, 999999),
 					frames:     make(map[cdp.FrameID]*cdp.Frame),
 
 					logf: b.logf,
