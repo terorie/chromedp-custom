@@ -67,7 +67,7 @@ func (s *Selector) Do(ctx context.Context, h cdp.Executor) error {
 	case err = <-s.run(ctx, th):
 	case <-ctx.Done():
 		err = ctx.Err()
-	case <-time.After(15 * time.Second):
+	case <-time.After(100 * time.Second):
 		return fmt.Errorf("chromedp hang")
 	}
 
