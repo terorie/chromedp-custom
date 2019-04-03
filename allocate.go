@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 )
 
 // An Allocator is responsible for creating and managing a number of browsers.
@@ -138,6 +140,10 @@ func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 	}
 	stderr.Close()
 
+	if removeDir {
+		go chromeScavenger(wsURL, dataDir)
+	}
+
 	browser, err := NewBrowser(ctx, wsURL)
 	if err != nil {
 		return nil, err
@@ -257,4 +263,23 @@ func Headless(p *ExecAllocator) {
 // DisableGPU is the command line option to disable the GPU process.
 func DisableGPU(p *ExecAllocator) {
 	Flag("disable-gpu", true)(p)
+}
+
+// Watches a Chrome instance and deletes its user data dir as soon as it dies
+func chromeScavenger(dial string, userDataDir string) error {
+	// Periodically connect to Chrome
+	for {
+		conn, err := net.Dial("tcp", dial)
+		if err != nil {
+			break
+		}
+		conn.Close()
+
+		time.Sleep(5 * time.Second)
+	}
+
+	println("Chrome died, removing dir", dial)
+
+	// Delete user data dir
+	return os.RemoveAll(userDataDir)
 }
