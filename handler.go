@@ -117,6 +117,9 @@ func (t *Target) Execute(ctx context.Context, method string, params json.Marshal
 		},
 	}
 
+	timeout := time.NewTimer(15 * time.Second)
+	defer timeout.Stop()
+
 	select {
 	case msg := <-ch:
 		switch {
@@ -129,6 +132,8 @@ func (t *Target) Execute(ctx context.Context, method string, params json.Marshal
 		}
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-timeout.C:
+		return fmt.Errorf("timeout receiving response")
 	}
 	return nil
 }
