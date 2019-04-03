@@ -43,6 +43,7 @@ func NewAllocator(parent context.Context, opts ...AllocatorOption) (context.Cont
 	return ctx, cancel
 }
 
+// AllocatorOption is a allocator option.
 type AllocatorOption func(*Allocator)
 
 // WithExecAllocator returns an AllocatorOption which sets up an ExecAllocator.
@@ -61,6 +62,7 @@ func WithExecAllocator(opts ...ExecAllocatorOption) func(*Allocator) {
 	}
 }
 
+// ExecAllocatorOption is a exec allocator option.
 type ExecAllocatorOption func(*ExecAllocator)
 
 // ExecAllocator is an Allocator which starts new browser processes on the host
@@ -72,6 +74,7 @@ type ExecAllocator struct {
 	wg sync.WaitGroup
 }
 
+// Allocate satisfies the Allocator interface.
 func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 	var args []string
 	for name, value := range p.initFlags {
@@ -152,6 +155,7 @@ func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 	return browser, nil
 }
 
+// Wait satisfies the Allocator interface.
 func (p *ExecAllocator) Wait() {
 	p.wg.Wait()
 }
@@ -178,6 +182,7 @@ func findExecPath() string {
 	for _, path := range [...]string{
 		// Unix-like
 		"headless_shell",
+		"headless-shell",
 		"chromium",
 		"chromium-browser",
 		"google-chrome",
