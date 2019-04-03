@@ -3,12 +3,10 @@ package chromedp
 import (
 	"context"
 	"fmt"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/dom"
+	"strings"
+	"sync"
 )
 
 /*
@@ -67,8 +65,6 @@ func (s *Selector) Do(ctx context.Context, h cdp.Executor) error {
 	case err = <-s.run(ctx, th):
 	case <-ctx.Done():
 		err = ctx.Err()
-	case <-time.After(100 * time.Second):
-		return fmt.Errorf("chromedp hang")
 	}
 
 	return err
