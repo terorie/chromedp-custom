@@ -20,13 +20,16 @@ type Context struct {
 	Browser *Browser
 
 	Target *Target
+
+	browserOptions []BrowserOption
 }
 
 // NewContext creates a browser context using the parent context.
-func NewContext(parent context.Context, opts ...ContextOption) (context.Context, context.CancelFunc) {
+func NewContext(parent context.Context, browserOpts []BrowserOption, opts ...ContextOption) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(parent)
 
 	c := &Context{}
+	c.browserOptions = browserOpts
 	if pc := FromContext(parent); pc != nil {
 		c.Allocator = pc.Allocator
 		c.Browser = pc.Browser

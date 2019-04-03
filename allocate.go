@@ -147,7 +147,14 @@ func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 		go chromeScavenger(wsURL, dataDir)
 	}
 
-	browser, err := NewBrowser(ctx, wsURL)
+
+	var browserOpts []BrowserOption
+	c := FromContext(ctx)
+	if c != nil {
+		browserOpts = c.browserOptions
+	}
+
+	browser, err := NewBrowser(ctx, wsURL, browserOpts...)
 	if err != nil {
 		return nil, err
 	}
