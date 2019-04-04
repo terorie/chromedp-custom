@@ -18,8 +18,8 @@ type Action interface {
 type ActionFunc func(context.Context, cdp.Executor) error
 
 // Do executes the func f using the provided context and frame handler.
-func (f ActionFunc) Do(ctxt context.Context, h cdp.Executor) error {
-	return f(ctxt, h)
+func (f ActionFunc) Do(ctx context.Context, h cdp.Executor) error {
+	return f(ctx, h)
 }
 
 // Tasks is a sequential list of Actions that can be used as a single Action.
@@ -27,12 +27,12 @@ type Tasks []Action
 
 // Do executes the list of Actions sequentially, using the provided context and
 // frame handler.
-func (t Tasks) Do(ctxt context.Context, h cdp.Executor) error {
+func (t Tasks) Do(ctx context.Context, h cdp.Executor) error {
 	// TODO: put individual task timeouts from context here
 	for _, a := range t {
-		// ctxt, cancel = context.WithTimeout(ctxt, timeout)
+		// ctx, cancel = context.WithTimeout(ctx, timeout)
 		// defer cancel()
-		if err := a.Do(ctxt, h); err != nil {
+		if err := a.Do(ctx, h); err != nil {
 			return err
 		}
 	}
@@ -46,12 +46,15 @@ func (t Tasks) Do(ctxt context.Context, h cdp.Executor) error {
 // be marked for deprecation in the future, after the remaining Actions have
 // been able to be written/tested.
 func Sleep(d time.Duration) Action {
-	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
+	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
+		// Don't use time.After, to avoid a temporary goroutine leak if
+		// ctx is cancelled before the timer fires.
+		t := time.NewTimer(d)
 		select {
-		case <-time.After(d):
-
-		case <-ctxt.Done():
-			return ctxt.Err()
+		case <-t.C:
+		case <-ctx.Done():
+			t.Stop()
+			return ctx.Err()
 		}
 		return nil
 	})

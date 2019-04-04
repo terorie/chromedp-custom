@@ -113,7 +113,7 @@ func MouseClickXY(x, y int64, opts ...MouseOption) Action {
 }
 
 func MouseClickXYWait(x, y int64, wait time.Duration, opts ...MouseOption) Action {
-	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
+	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
 		me := &input.DispatchMouseEventParams{
 			Type:       input.MousePressed,
 			X:          float64(x),
@@ -127,18 +127,17 @@ func MouseClickXYWait(x, y int64, wait time.Duration, opts ...MouseOption) Actio
 			me = o(me)
 		}
 
-		err := me.Do(ctxt, h)
-		if err != nil {
+		if err := me.Do(ctx, h); err != nil {
 			return err
 		}
 
-		slErr := Sleep(wait).Do(ctxt, h)
+		slErr := Sleep(wait).Do(ctx, h)
 		if slErr != nil {
 			return slErr
 		}
 
 		me.Type = input.MouseReleased
-		return me.Do(ctxt, h)
+		return me.Do(ctx, h)
 	})
 }
 
@@ -147,23 +146,15 @@ func MouseClickXYWait(x, y int64, wait time.Duration, opts ...MouseOption) Actio
 //
 // Note that the window will be scrolled if the node is not within the window's
 // viewport.
-func MouseClickNode(n *cdp.Node, opts ...MouseOption) Action {
-	return MouseClickNodeWait(n, 0, opts...)
-}
-
-// MouseClickNodeWait behaves like MouseClickNode but with a
-// wait time between mousePressed and mouseReleased.
-func MouseClickNodeWait(n *cdp.Node, wait time.Duration, opts ...MouseOption) Action {
-	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
-		var err error
-
+func MouseClickNode(n *cdp.Node, wait time.Duration, opts ...MouseOption) Action {
+	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
 		var pos []int
-		err = EvaluateAsDevTools(fmt.Sprintf(scrollIntoViewJS, n.FullXPath()), &pos).Do(ctxt, h)
+		err := EvaluateAsDevTools(fmt.Sprintf(scrollIntoViewJS, n.FullXPath()), &pos).Do(ctx, h)
 		if err != nil {
 			return err
 		}
 
-		box, err := dom.GetBoxModel().WithNodeID(n.NodeID).Do(ctxt, h)
+		box, err := dom.GetBoxModel().WithNodeID(n.NodeID).Do(ctx, h)
 		if err != nil {
 			return err
 		}
@@ -181,7 +172,7 @@ func MouseClickNodeWait(n *cdp.Node, wait time.Duration, opts ...MouseOption) Ac
 		x /= int64(c / 2)
 		y /= int64(c / 2)
 
-		return MouseClickXY(x, y, opts...).Do(ctxt, h)
+		return MouseClickXYWait(x, y, wait, opts...).Do(ctx, h)
 	})
 }
 
@@ -250,19 +241,13 @@ func ClickCount(n int) MouseOption {
 // Please see the chromedp/kb package for implementation details and the list
 // of well-known keys.
 func KeyAction(keys string, opts ...KeyOption) Action {
-	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
-		var err error
-
+	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
 		for _, r := range keys {
 			for _, k := range kb.Encode(r) {
-				err = k.Do(ctxt, h)
-				if err != nil {
+				if err := k.Do(ctx, h); err != nil {
 					return err
 				}
 			}
-
-			// TODO: move to context
-			time.Sleep(5 * time.Millisecond)
 		}
 
 		return nil
@@ -271,13 +256,13 @@ func KeyAction(keys string, opts ...KeyOption) Action {
 
 // KeyActionNode dispatches a key event on a node.
 func KeyActionNode(n *cdp.Node, keys string, opts ...KeyOption) Action {
-	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
-		err := dom.Focus().WithNodeID(n.NodeID).Do(ctxt, h)
+	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
+		err := dom.Focus().WithNodeID(n.NodeID).Do(ctx, h)
 		if err != nil {
 			return err
 		}
 
-		return KeyAction(keys, opts...).Do(ctxt, h)
+		return KeyAction(keys, opts...).Do(ctx, h)
 	})
 }
 

@@ -11,7 +11,7 @@ import (
 // Evaluate is an action to evaluate the Javascript expression, unmarshaling
 // the result of the script evaluation to res.
 //
-// When res is a type other than *[]byte, or **chromedp/cdp/runtime.RemoteObject,
+// When res is a type other than *[]byte, or **chromedp/cdproto/runtime.RemoteObject,
 // then the result of the script evaluation will be returned "by value" (ie,
 // JSON-encoded), and subsequently an attempt will be made to json.Unmarshal
 // the script result to res.
@@ -27,7 +27,7 @@ func Evaluate(expression string, res interface{}, opts ...EvaluateOption) Action
 		panic("res cannot be nil")
 	}
 
-	return ActionFunc(func(ctxt context.Context, h cdp.Executor) error {
+	return ActionFunc(func(ctx context.Context, h cdp.Executor) error {
 		// set up parameters
 		p := runtime.Evaluate(expression)
 		switch res.(type) {
@@ -42,7 +42,7 @@ func Evaluate(expression string, res interface{}, opts ...EvaluateOption) Action
 		}
 
 		// evaluate
-		v, exp, err := p.Do(ctxt, h)
+		v, exp, err := p.Do(ctx, h)
 		if err != nil {
 			return err
 		}

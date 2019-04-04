@@ -1,7 +1,10 @@
 package chromedp
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	_ "image/png"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,15 +16,16 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/css"
 	"github.com/chromedp/cdproto/dom"
+	"github.com/chromedp/cdproto/emulation"
 
-	"github.com/chromedp/chromedp/kb"
+	"github.com/chucnorrisful/chromedp/kb"
 )
 
 func TestNodes(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "table.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "table.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -34,13 +38,12 @@ func TestNodes(t *testing.T) {
 		{"#footer", ByID, 1},
 	}
 
-	var err error
 	for i, test := range tests {
 		var nodes []*cdp.Node
-		err = c.Run(defaultContext, Nodes(test.sel, &nodes, test.by))
-		if err != nil {
+		if err := Run(ctx, Nodes(test.sel, &nodes, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		if len(nodes) != test.len {
 			t.Errorf("test %d expected to have %d nodes: got %d", i, test.len, len(nodes))
 		}
@@ -50,8 +53,8 @@ func TestNodes(t *testing.T) {
 func TestNodeIDs(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "table.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "table.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -64,13 +67,12 @@ func TestNodeIDs(t *testing.T) {
 		{"#footer", ByID, 1},
 	}
 
-	var err error
 	for i, test := range tests {
 		var ids []cdp.NodeID
-		err = c.Run(defaultContext, NodeIDs(test.sel, &ids, test.by))
-		if err != nil {
+		if err := Run(ctx, NodeIDs(test.sel, &ids, test.by)); err != nil {
 			t.Fatal(err)
 		}
+
 		if len(ids) != test.len {
 			t.Errorf("test %d expected to have %d node id's: got %d", i, test.len, len(ids))
 		}
@@ -80,8 +82,8 @@ func TestNodeIDs(t *testing.T) {
 func TestFocusBlur(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "js.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "js.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -93,35 +95,29 @@ func TestFocusBlur(t *testing.T) {
 		{"#input1", ByID},
 	}
 
-	err := c.Run(defaultContext, Click("#input1", ByID))
-	if err != nil {
+	if err := Run(ctx, Click("#input1", ByID)); err != nil {
 		t.Fatal(err)
 	}
 
 	for i, test := range tests {
-		err = c.Run(defaultContext, Focus(test.sel, test.by))
-		if err != nil {
+		var value string
+		if err := Run(ctx,
+			Focus(test.sel, test.by),
+			Value(test.sel, &value, test.by),
+		); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
 
-		var value string
-		err = c.Run(defaultContext, Value(test.sel, &value, test.by))
-		if err != nil {
-			t.Fatalf("test %d got error: %v", i, err)
-		}
 		if value != "9999" {
 			t.Errorf("test %d expected value is '9999', got: '%s'", i, value)
 		}
-
-		err = c.Run(defaultContext, Blur(test.sel, test.by))
-		if err != nil {
+		if err := Run(ctx,
+			Blur(test.sel, test.by),
+			Value(test.sel, &value, test.by),
+		); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
 
-		err = c.Run(defaultContext, Value(test.sel, &value, test.by))
-		if err != nil {
-			t.Fatalf("test %d got error: %v", i, err)
-		}
 		if value != "0" {
 			t.Errorf("test %d expected value is '0', got: '%s'", i, value)
 		}
@@ -131,8 +127,8 @@ func TestFocusBlur(t *testing.T) {
 func TestDimensions(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "image.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "image.html")
+	defer cancel()
 
 	tests := []struct {
 		sel    string
@@ -146,13 +142,12 @@ func TestDimensions(t *testing.T) {
 		{"#icon-github", ByID, 120, 120},
 	}
 
-	var err error
 	for i, test := range tests {
 		var model *dom.BoxModel
-		err = c.Run(defaultContext, Dimensions(test.sel, &model))
-		if err != nil {
+		if err := Run(ctx, Dimensions(test.sel, &model)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		if model.Height != test.height || model.Width != test.width {
 			t.Errorf("test %d expected %dx%d, got: %dx%d", i, test.width, test.height, model.Height, model.Width)
 		}
@@ -162,8 +157,8 @@ func TestDimensions(t *testing.T) {
 func TestText(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "form.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "form.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -176,13 +171,12 @@ func TestText(t *testing.T) {
 		{"/html/body/form/span[2]", BySearch, "keyword"},
 	}
 
-	var err error
 	for i, test := range tests {
 		var text string
-		err = c.Run(defaultContext, Text(test.sel, &text, test.by))
-		if err != nil {
+		if err := Run(ctx, Text(test.sel, &text, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		if text != test.exp {
 			t.Errorf("test %d expected `%s`, got: %s", i, test.exp, text)
 		}
@@ -190,6 +184,8 @@ func TestText(t *testing.T) {
 }
 
 func TestClear(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -212,28 +208,24 @@ func TestClear(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "form.html")
-			defer c.Release()
+			ctx, cancel := testAllocate(t, "form.html")
+			defer cancel()
 
 			var val string
-			err := c.Run(defaultContext, Value(test.sel, &val, test.by))
-			if err != nil {
+			if err := Run(ctx, Value(test.sel, &val, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 			if val == "" {
 				t.Errorf("expected `%s` to have non empty value", test.sel)
 			}
-
-			err = c.Run(defaultContext, Clear(test.sel, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
-
-			err = c.Run(defaultContext, Value(test.sel, &val, test.by))
-			if err != nil {
+			if err := Run(ctx,
+				Clear(test.sel, test.by),
+				Value(test.sel, &val, test.by),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 			if val != "" {
@@ -244,6 +236,8 @@ func TestClear(t *testing.T) {
 }
 
 func TestReset(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel   string
 		by    QueryOption
@@ -257,27 +251,22 @@ func TestReset(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "form.html")
-			defer c.Release()
-
-			err := c.Run(defaultContext, SetValue(test.sel, test.value, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
-
-			err = c.Run(defaultContext, Reset(test.sel, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
+			ctx, cancel := testAllocate(t, "form.html")
+			defer cancel()
 
 			var value string
-			err = c.Run(defaultContext, Value(test.sel, &value, test.by))
-			if err != nil {
+			if err := Run(ctx,
+				SetValue(test.sel, test.value, test.by),
+				Reset(test.sel, test.by),
+				Value(test.sel, &value, test.by),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
+
 			if value != test.exp {
 				t.Errorf("expected value after reset is %s, got: '%s'", test.exp, value)
 			}
@@ -288,8 +277,8 @@ func TestReset(t *testing.T) {
 func TestValue(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "form.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "form.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -301,13 +290,12 @@ func TestValue(t *testing.T) {
 		{`#keyword`, ByID},
 	}
 
-	var err error
 	for i, test := range tests {
 		var value string
-		err = c.Run(defaultContext, Value(test.sel, &value, test.by))
-		if err != nil {
+		if err := Run(ctx, Value(test.sel, &value, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		if value != "chromedp" {
 			t.Errorf("test %d expected `chromedp`, got: %s", i, value)
 		}
@@ -315,6 +303,8 @@ func TestValue(t *testing.T) {
 }
 
 func TestSetValue(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -326,22 +316,21 @@ func TestSetValue(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "form.html")
-			defer c.Release()
-
-			err := c.Run(defaultContext, SetValue(test.sel, "FOOBAR", test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
+			ctx, cancel := testAllocate(t, "form.html")
+			defer cancel()
 
 			var value string
-			err = c.Run(defaultContext, Value(test.sel, &value, test.by))
-			if err != nil {
+			if err := Run(ctx,
+				SetValue(test.sel, "FOOBAR", test.by),
+				Value(test.sel, &value, test.by),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
+
 			if value != "FOOBAR" {
 				t.Errorf("expected `FOOBAR`, got: %s", value)
 			}
@@ -352,45 +341,51 @@ func TestSetValue(t *testing.T) {
 func TestAttributes(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "image.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "image.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
 		by  QueryOption
 		exp map[string]string
 	}{
-		{`//*[@id="icon-brankas"]`, BySearch,
+		{
+			`//*[@id="icon-brankas"]`, BySearch,
 			map[string]string{
 				"alt": "Brankas - Easy Money Management",
 				"id":  "icon-brankas",
 				"src": "images/brankas.png",
-			}},
-		{"body > img:first-child", ByQuery,
+			},
+		},
+		{
+			"body > img:first-child", ByQuery,
 			map[string]string{
 				"alt": "Brankas - Easy Money Management",
 				"id":  "icon-brankas",
 				"src": "images/brankas.png",
-			}},
-		{"body > img:nth-child(2)", ByQueryAll,
+			},
+		},
+		{
+			"body > img:nth-child(2)", ByQueryAll,
 			map[string]string{
 				"alt": `How people build software`,
 				"id":  "icon-github",
 				"src": "images/github.png",
-			}},
-		{"#icon-github", ByID,
+			},
+		},
+		{
+			"#icon-github", ByID,
 			map[string]string{
 				"alt": "How people build software",
 				"id":  "icon-github",
 				"src": "images/github.png",
-			}},
+			},
+		},
 	}
 
-	var err error
 	for i, test := range tests {
 		var attrs map[string]string
-		err = c.Run(defaultContext, Attributes(test.sel, &attrs, test.by))
-		if err != nil {
+		if err := Run(ctx, Attributes(test.sel, &attrs, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
 
@@ -403,15 +398,16 @@ func TestAttributes(t *testing.T) {
 func TestAttributesAll(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "image.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "image.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
 		by  QueryOption
 		exp []map[string]string
 	}{
-		{"img", ByQueryAll,
+		{
+			"img", ByQueryAll,
 			[]map[string]string{
 				{
 					"alt": "Brankas - Easy Money Management",
@@ -427,11 +423,9 @@ func TestAttributesAll(t *testing.T) {
 		},
 	}
 
-	var err error
 	for i, test := range tests {
 		var attrs []map[string]string
-		err = c.Run(defaultContext, AttributesAll(test.sel, &attrs, test.by))
-		if err != nil {
+		if err := Run(ctx, AttributesAll(test.sel, &attrs, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
 
@@ -442,28 +436,36 @@ func TestAttributesAll(t *testing.T) {
 }
 
 func TestSetAttributes(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel   string
 		by    QueryOption
 		attrs map[string]string
 		exp   map[string]string
 	}{
-		{`//*[@id="icon-brankas"]`, BySearch,
-			map[string]string{"data-url": "brankas"},
-			map[string]string{
-				"alt":      "Brankas - Easy Money Management",
-				"id":       "icon-brankas",
-				"src":      "images/brankas.png",
-				"data-url": "brankas"}},
-		{"body > img:first-child", ByQuery,
+		{
+			`//*[@id="icon-brankas"]`, BySearch,
 			map[string]string{"data-url": "brankas"},
 			map[string]string{
 				"alt":      "Brankas - Easy Money Management",
 				"id":       "icon-brankas",
 				"src":      "images/brankas.png",
 				"data-url": "brankas",
-			}},
-		{"body > img:nth-child(2)", ByQueryAll,
+			},
+		},
+		{
+			"body > img:first-child", ByQuery,
+			map[string]string{"data-url": "brankas"},
+			map[string]string{
+				"alt":      "Brankas - Easy Money Management",
+				"id":       "icon-brankas",
+				"src":      "images/brankas.png",
+				"data-url": "brankas",
+			},
+		},
+		{
+			"body > img:nth-child(2)", ByQueryAll,
 			map[string]string{"width": "100", "height": "200"},
 			map[string]string{
 				"alt":    `How people build software`,
@@ -471,8 +473,10 @@ func TestSetAttributes(t *testing.T) {
 				"src":    "images/github.png",
 				"width":  "100",
 				"height": "200",
-			}},
-		{"#icon-github", ByID,
+			},
+		},
+		{
+			"#icon-github", ByID,
 			map[string]string{"width": "100", "height": "200"},
 			map[string]string{
 				"alt":    "How people build software",
@@ -480,24 +484,27 @@ func TestSetAttributes(t *testing.T) {
 				"src":    "images/github.png",
 				"width":  "100",
 				"height": "200",
-			}},
+			},
+		},
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "image.html")
-			defer c.Release()
+			ctx, cancel := testAllocate(t, "image.html")
+			defer cancel()
 
-			err := c.Run(defaultContext, SetAttributes(test.sel, test.attrs, test.by))
-			if err != nil {
+			if err := Run(ctx, SetAttributes(test.sel, test.attrs, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
+			// TODO: figure why this test is flaky without this
+			time.Sleep(10 * time.Millisecond)
+
 			var attrs map[string]string
-			err = c.Run(defaultContext, Attributes(test.sel, &attrs, test.by))
-			if err != nil {
+			if err := Run(ctx, Attributes(test.sel, &attrs, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
@@ -511,8 +518,8 @@ func TestSetAttributes(t *testing.T) {
 func TestAttributeValue(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "image.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "image.html")
+	defer cancel()
 
 	tests := []struct {
 		sel  string
@@ -526,20 +533,15 @@ func TestAttributeValue(t *testing.T) {
 		{"#icon-github", ByID, "alt", "How people build software"},
 	}
 
-	var err error
 	for i, test := range tests {
 		var value string
 		var ok bool
-
-		err = c.Run(defaultContext, AttributeValue(test.sel, test.attr, &value, &ok, test.by))
-		if err != nil {
+		if err := Run(ctx, AttributeValue(test.sel, test.attr, &value, &ok, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
-
 		if !ok {
 			t.Fatalf("test %d failed to get attribute %s on %s", i, test.attr, test.sel)
 		}
-
 		if value != test.exp {
 			t.Errorf("test %d expected %s to be %s, got: %s", i, test.attr, test.exp, value)
 		}
@@ -547,6 +549,8 @@ func TestAttributeValue(t *testing.T) {
 }
 
 func TestSetAttributeValue(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel  string
 		by   QueryOption
@@ -560,27 +564,28 @@ func TestSetAttributeValue(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "form.html")
-			defer c.Release()
+			ctx, cancel := testAllocate(t, "form.html")
+			defer cancel()
 
-			err := c.Run(defaultContext, SetAttributeValue(test.sel, test.attr, test.exp, test.by))
-			if err != nil {
+			if err := Run(ctx, SetAttributeValue(test.sel, test.attr, test.exp, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
+			// TODO: figure why this test is flaky without this
+			time.Sleep(10 * time.Millisecond)
+
 			var value string
 			var ok bool
-			err = c.Run(defaultContext, AttributeValue(test.sel, test.attr, &value, &ok, test.by))
-			if err != nil {
+			if err := Run(ctx, AttributeValue(test.sel, test.attr, &value, &ok, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 			if !ok {
 				t.Fatalf("failed to get attribute %s on %s", test.attr, test.sel)
 			}
-
 			if value != test.exp {
 				t.Errorf("expected %s to be %s, got: %s", test.attr, test.exp, value)
 			}
@@ -589,6 +594,8 @@ func TestSetAttributeValue(t *testing.T) {
 }
 
 func TestRemoveAttribute(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel  string
 		by   QueryOption
@@ -601,21 +608,23 @@ func TestRemoveAttribute(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "image.html")
-			defer c.Release()
+			ctx, cancel := testAllocate(t, "image.html")
+			defer cancel()
 
-			err := c.Run(defaultContext, RemoveAttribute(test.sel, test.attr))
-			if err != nil {
+			if err := Run(ctx, RemoveAttribute(test.sel, test.attr)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
+			// TODO: figure why this test is flaky without this
+			time.Sleep(10 * time.Millisecond)
+
 			var value string
 			var ok bool
-			err = c.Run(defaultContext, AttributeValue(test.sel, test.attr, &value, &ok, test.by))
-			if err != nil {
+			if err := Run(ctx, AttributeValue(test.sel, test.attr, &value, &ok, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 			if ok || value != "" {
@@ -626,6 +635,8 @@ func TestRemoveAttribute(t *testing.T) {
 }
 
 func TestClick(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -637,27 +648,22 @@ func TestClick(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "form.html")
-			defer c.Release()
-
-			err := c.Run(defaultContext, Click(test.sel, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
-
-			err = c.Run(defaultContext, WaitVisible("#icon-brankas", ByID))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
+			ctx, cancel := testAllocate(t, "form.html")
+			defer cancel()
 
 			var title string
-			err = c.Run(defaultContext, Title(&title))
-			if err != nil {
+			if err := Run(ctx,
+				Click(test.sel, test.by),
+				WaitVisible("#icon-brankas", ByID),
+				Title(&title),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
+
 			if title != "this is title" {
 				t.Errorf("expected title to be 'chromedp - Google Search', got: '%s'", title)
 			}
@@ -666,6 +672,8 @@ func TestClick(t *testing.T) {
 }
 
 func TestDoubleClick(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -677,24 +685,21 @@ func TestDoubleClick(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "js.html")
-			defer c.Release()
-
-			err := c.Run(defaultContext, DoubleClick(test.sel, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
-
-			time.Sleep(50 * time.Millisecond)
+			ctx, cancel := testAllocate(t, "js.html")
+			defer cancel()
 
 			var value string
-			err = c.Run(defaultContext, Value("#input1", &value, ByID))
-			if err != nil {
+			if err := Run(ctx,
+				DoubleClick(test.sel, test.by),
+				Value("#input1", &value, ByID),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
+
 			if value != "1" {
 				t.Errorf("expected value to be '1', got: '%s'", value)
 			}
@@ -703,6 +708,8 @@ func TestDoubleClick(t *testing.T) {
 }
 
 func TestSendKeys(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel  string
 		by   QueryOption
@@ -718,22 +725,21 @@ func TestSendKeys(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "visible.html")
-			defer c.Release()
-
-			err := c.Run(defaultContext, SendKeys(test.sel, test.keys, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
+			ctx, cancel := testAllocate(t, "visible.html")
+			defer cancel()
 
 			var val string
-			err = c.Run(defaultContext, Value(test.sel, &val, test.by))
-			if err != nil {
+			if err := Run(ctx,
+				SendKeys(test.sel, test.keys, test.by),
+				Value(test.sel, &val, test.by),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
+
 			if val != test.exp {
 				t.Errorf("expected value %s, got: %s", test.exp, val)
 			}
@@ -744,35 +750,53 @@ func TestSendKeys(t *testing.T) {
 func TestScreenshot(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "image.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "image.html")
+	defer cancel()
 
 	tests := []struct {
-		sel string
-		by  QueryOption
+		sel  string
+		by   QueryOption
+		size int
 	}{
-		{"/html/body/img", BySearch},
-		{"img", ByQueryAll},
-		{"img", ByQuery},
-		{"#icon-github", ByID},
+		{"/html/body/img", BySearch, 239},
+		{"img", ByQueryAll, 239},
+		{"#icon-github", ByID, 120},
 	}
 
-	var err error
+	// a smaller viewport speeds up this test
+	width, height := 650, 450
+	if err := Run(ctx, emulation.SetDeviceMetricsOverride(
+		int64(width), int64(height), 1.0, false,
+	)); err != nil {
+		t.Fatal(err)
+	}
+
 	for i, test := range tests {
 		var buf []byte
-		err = c.Run(defaultContext, Screenshot(test.sel, &buf))
-		if err != nil {
+		if err := Run(ctx, Screenshot(test.sel, &buf)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
 
 		if len(buf) == 0 {
 			t.Fatalf("test %d failed to capture screenshot", i)
 		}
-		//TODO: test image
+		config, format, err := image.DecodeConfig(bytes.NewReader(buf))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := "png"; format != want {
+			t.Fatalf("expected format to be %q, got %q", want, format)
+		}
+		if config.Width != test.size || config.Height != test.size {
+			t.Fatalf("expected dimensions to be %d*%d, got %d*%d",
+				test.size, test.size, config.Width, config.Height)
+		}
 	}
 }
 
 func TestSubmit(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -784,27 +808,22 @@ func TestSubmit(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "form.html")
-			defer c.Release()
-
-			err := c.Run(defaultContext, Submit(test.sel, test.by))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
-
-			err = c.Run(defaultContext, WaitVisible("#icon-brankas", ByID))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
+			ctx, cancel := testAllocate(t, "form.html")
+			defer cancel()
 
 			var title string
-			err = c.Run(defaultContext, Title(&title))
-			if err != nil {
+			if err := Run(ctx,
+				Submit(test.sel, test.by),
+				WaitVisible("#icon-brankas", ByID),
+				Title(&title),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
+
 			if title != "this is title" {
 				t.Errorf("expected title to be 'this is title', got: '%s'", title)
 			}
@@ -813,6 +832,8 @@ func TestSubmit(t *testing.T) {
 }
 
 func TestComputedStyle(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -824,17 +845,15 @@ func TestComputedStyle(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "js.html")
-			defer c.Release()
-
-			time.Sleep(50 * time.Millisecond)
+			ctx, cancel := testAllocate(t, "js.html")
+			defer cancel()
 
 			var styles []*css.ComputedProperty
-			err := c.Run(defaultContext, ComputedStyle(test.sel, &styles, test.by))
-			if err != nil {
+			if err := Run(ctx, ComputedStyle(test.sel, &styles, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
@@ -845,16 +864,10 @@ func TestComputedStyle(t *testing.T) {
 					}
 				}
 			}
-
-			err = c.Run(defaultContext, Click("#input1", ByID))
-			if err != nil {
-				t.Fatalf("got error: %v", err)
-			}
-
-			time.Sleep(50 * time.Millisecond)
-
-			err = c.Run(defaultContext, ComputedStyle(test.sel, &styles, test.by))
-			if err != nil {
+			if err := Run(ctx,
+				Click("#input1", ByID),
+				ComputedStyle(test.sel, &styles, test.by),
+			); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
@@ -870,6 +883,8 @@ func TestComputedStyle(t *testing.T) {
 }
 
 func TestMatchedStyle(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		sel string
 		by  QueryOption
@@ -881,17 +896,15 @@ func TestMatchedStyle(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			test := test
 			t.Parallel()
 
-			c := testAllocate(t, "js.html")
-			defer c.Release()
-
-			time.Sleep(50 * time.Millisecond)
+			ctx, cancel := testAllocate(t, "js.html")
+			defer cancel()
 
 			var styles *css.GetMatchedStylesForNodeReturns
-			err := c.Run(defaultContext, MatchedStyle(test.sel, &styles, test.by))
-			if err != nil {
+			if err := Run(ctx, MatchedStyle(test.sel, &styles, test.by)); err != nil {
 				t.Fatalf("got error: %v", err)
 			}
 
@@ -906,7 +919,7 @@ func TestFileUpload(t *testing.T) {
 	// create test server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(res, uploadHTML)
+		fmt.Fprintf(res, "%s", uploadHTML)
 	})
 	mux.HandleFunc("/upload", func(res http.ResponseWriter, req *http.Request) {
 		f, _, err := req.FormFile("upload")
@@ -933,15 +946,13 @@ func TestFileUpload(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpfile.Name())
-	if _, err = tmpfile.WriteString(uploadHTML); err != nil {
+	defer tmpfile.Close()
+	if _, err := tmpfile.WriteString(uploadHTML); err != nil {
 		t.Fatal(err)
 	}
-	if err = tmpfile.Close(); err != nil {
+	if err := tmpfile.Close(); err != nil {
 		t.Fatal(err)
 	}
-
-	c := testAllocate(t, "")
-	defer c.Release()
 
 	tests := []struct {
 		a Action
@@ -950,21 +961,26 @@ func TestFileUpload(t *testing.T) {
 		{SetUploadFiles(`input[name="upload"]`, []string{tmpfile.Name()}, NodeVisible)},
 	}
 
+	// Don't run these tests in parallel. The only way to do so would be to
+	// fire a separate httptest server and tmpfile for each. There's no way
+	// to share these resources easily among parallel subtests, as the
+	// parent must finish for the children to run, made impossible by the
+	// defers above.
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
-			c := testAllocate(t, "")
-			defer c.Release()
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			ctx, cancel := testAllocate(t, "")
+			defer cancel()
 
 			var result string
-			err = c.Run(defaultContext, Tasks{
+			if err := Run(ctx,
 				Navigate(s.URL),
 				test.a,
 				Click(`input[name="submit"]`),
 				Text(`#result`, &result, ByID, NodeVisible),
-			})
-			if err != nil {
+			); err != nil {
 				t.Fatalf("test %d expected no error, got: %v", i, err)
 			}
+
 			if result != fmt.Sprintf("%d", len(uploadHTML)) {
 				t.Errorf("test %d expected result to be %d, got: %s", i, len(uploadHTML), result)
 			}
@@ -975,8 +991,8 @@ func TestFileUpload(t *testing.T) {
 func TestInnerHTML(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "table.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "table.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -986,13 +1002,12 @@ func TestInnerHTML(t *testing.T) {
 		{"thead", ByQueryAll},
 		{"thead", ByQuery},
 	}
-	var err error
 	for i, test := range tests {
 		var html string
-		err = c.Run(defaultContext, InnerHTML(test.sel, &html))
-		if err != nil {
+		if err := Run(ctx, InnerHTML(test.sel, &html)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		if html == "" {
 			t.Fatalf("test %d: InnerHTML is empty", i)
 		}
@@ -1002,8 +1017,8 @@ func TestInnerHTML(t *testing.T) {
 func TestOuterHTML(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "table.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "table.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -1013,13 +1028,12 @@ func TestOuterHTML(t *testing.T) {
 		{"thead tr", ByQueryAll},
 		{"thead tr", ByQuery},
 	}
-	var err error
 	for i, test := range tests {
 		var html string
-		err = c.Run(defaultContext, OuterHTML(test.sel, &html))
-		if err != nil {
+		if err := Run(ctx, OuterHTML(test.sel, &html)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		if html == "" {
 			t.Fatalf("test %d: OuterHTML is empty", i)
 		}
@@ -1029,8 +1043,8 @@ func TestOuterHTML(t *testing.T) {
 func TestScrollIntoView(t *testing.T) {
 	t.Parallel()
 
-	c := testAllocate(t, "image.html")
-	defer c.Release()
+	ctx, cancel := testAllocate(t, "image.html")
+	defer cancel()
 
 	tests := []struct {
 		sel string
@@ -1041,12 +1055,11 @@ func TestScrollIntoView(t *testing.T) {
 		{"img", ByQuery},
 		{"#icon-github", ByID},
 	}
-	var err error
 	for i, test := range tests {
-		err = c.Run(defaultContext, ScrollIntoView(test.sel, test.by))
-		if err != nil {
+		if err := Run(ctx, ScrollIntoView(test.sel, test.by)); err != nil {
 			t.Fatalf("test %d got error: %v", i, err)
 		}
+
 		// TODO test scroll event
 	}
 }
