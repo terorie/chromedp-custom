@@ -6,11 +6,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/input"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/dom"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/input"
 
-	"github.com/chucnorrisful/chromedp/kb"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/kb"
 )
 
 var touchCounter int64 = 0

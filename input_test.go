@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/input"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/input"
 )
 
 const (
@@ -100,7 +101,7 @@ func TestMouseClickNode(t *testing.T) {
 			}
 			var value string
 			if err := Run(ctx,
-				MouseClickNode(nodes[0], test.opt),
+				MouseClickNode(nodes[0], 100 * time.Millisecond, test.opt),
 				Value("#input3", &value, ByID),
 			); err != nil {
 				t.Fatalf("got error: %v", err)
@@ -153,7 +154,7 @@ func TestMouseClickOffscreenNode(t *testing.T) {
 			}
 
 			for i := test.exp; i > 0; i-- {
-				if err := Run(ctx, MouseClickNode(nodes[0])); err != nil {
+				if err := Run(ctx, MouseClickNode(nodes[0], 100 * time.Millisecond)); err != nil {
 					t.Fatalf("got error: %v", err)
 				}
 			}

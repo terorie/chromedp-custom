@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chucnorrisful/chromedp/kb"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/kb"
 )
 
 var (

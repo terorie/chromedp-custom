@@ -24,7 +24,7 @@ var (
 func testAllocate(t *testing.T, path string) (_ context.Context, cancel func()) {
 	// Same browser, new tab; not needing to start new chrome browsers for
 	// each test gives a huge speed-up.
-	ctx, cancel := NewContext(browserCtx)
+	ctx, cancel := NewContext(browserCtx, nil)
 
 	// Only navigate if we want a path, otherwise leave the blank page.
 	if path != "" {
@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 	allocCtx, cancel := NewAllocator(context.Background(), WithExecAllocator(allocOpts...))
 
 	// start the browser
-	browserCtx, _ = NewContext(allocCtx)
+	browserCtx, _ = NewContext(allocCtx, nil)
 	if err := Run(browserCtx); err != nil {
 		panic(err)
 	}

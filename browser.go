@@ -14,10 +14,10 @@ import (
 
 	"github.com/mailru/easyjson"
 
-	"github.com/chromedp/cdproto"
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/cdproto/target"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/runtime"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/target"
 )
 
 // Browser is the high-level Chrome DevTools Protocol browser manager, handling

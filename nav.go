@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/page"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/page"
 )
 
 // Navigate navigates the current frame.

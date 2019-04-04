@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/css"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/emulation"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/css"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/dom"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/emulation"
 
-	"github.com/chucnorrisful/chromedp/kb"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/kb"
 )
 
 func TestNodes(t *testing.T) {

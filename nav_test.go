@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chromedp/cdproto/emulation"
-	"github.com/chromedp/cdproto/page"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/emulation"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/page"
 )
 
 func TestNavigate(t *testing.T) {

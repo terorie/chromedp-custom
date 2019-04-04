@@ -14,10 +14,10 @@ import (
 
 	"github.com/disintegration/imaging"
 
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/css"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/page"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/css"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/dom"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/page"
 )
 
 // Nodes retrieves the document nodes matching the selector.

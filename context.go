@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chromedp/cdproto/css"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/inspector"
-	"github.com/chromedp/cdproto/log"
-	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/cdproto/target"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/css"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/dom"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/inspector"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/log"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/page"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/runtime"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/target"
 )
 
 // Context is attached to any context.Context which is valid for use with Run.

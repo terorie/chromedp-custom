@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/chromedp/cdproto"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
 	"github.com/gorilla/websocket"
 )
 

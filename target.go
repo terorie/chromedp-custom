@@ -9,12 +9,12 @@ import (
 
 	"github.com/mailru/easyjson"
 
-	"github.com/chromedp/cdproto"
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/inspector"
-	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/cdproto/target"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/dom"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/inspector"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/page"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/target"
 )
 
 var globalAbort int32

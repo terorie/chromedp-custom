@@ -8,11 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/chucnorrisful/chromedp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew"
 )
 
 func ExampleTitle() {
-	ctx, cancel := chromedp.NewContext(context.Background())
+	ctx, cancel := chromedp.NewContext(context.Background(), nil)
 	defer cancel()
 
 	var title string
@@ -53,7 +53,7 @@ func ExampleExecAllocator() {
 		chromedp.WithExecAllocator(opts...))
 	defer cancel()
 
-	taskCtx, cancel := chromedp.NewContext(allocCtx)
+	taskCtx, cancel := chromedp.NewContext(allocCtx, nil)
 	defer cancel()
 
 	// ensure that the browser process is started
@@ -79,7 +79,7 @@ func ExampleExecAllocator() {
 
 func ExampleNewContext_manyTabs() {
 	// new browser, first tab
-	ctx1, cancel := chromedp.NewContext(context.Background())
+	ctx1, cancel := chromedp.NewContext(context.Background(), nil)
 	defer cancel()
 
 	// ensure the first tab is created
@@ -88,7 +88,7 @@ func ExampleNewContext_manyTabs() {
 	}
 
 	// same browser, second tab
-	ctx2, _ := chromedp.NewContext(ctx1)
+	ctx2, _ := chromedp.NewContext(ctx1, nil)
 
 	// ensure the second tab is created
 	if err := chromedp.Run(ctx2); err != nil {

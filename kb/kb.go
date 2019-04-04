@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"unicode"
 
-	"github.com/chromedp/cdproto/input"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/input"
 )
 
 // Key contains information for generating a key press based off the unicode

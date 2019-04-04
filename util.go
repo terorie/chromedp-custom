@@ -1,8 +1,8 @@
 package chromedp
 
 import (
-	"github.com/chromedp/cdproto"
-	"github.com/chromedp/cdproto/cdp"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
+	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
 )
 
 // frameOp is a frame manipulation operation.

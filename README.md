@@ -24,8 +24,8 @@ Please see the [examples][6] project for more examples. Please refer to the
 * [chromedp: A New Way to Drive the Web][8] - GopherCon SG 2017 talk
 * [Chrome DevTools Protocol][5] - Chrome DevTools Protocol Domain documentation
 * [chromedp examples][6] - various `chromedp` examples
-* [`github.com/chromedp/cdproto`][9] - GoDoc listing for the CDP domains used by `chromedp`
-* [`github.com/chromedp/cdproto-gen`][10] - tool used to generate `cdproto`
+* [`bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto`][9] - GoDoc listing for the CDP domains used by `chromedp`
+* [`bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto-gen`][10] - tool used to generate `cdproto`
 * [`github.com/chromedp/chromedp-proxy`][11] - a simple CDP proxy for logging CDP clients and browsers
 
 ## TODO
@@ -44,7 +44,7 @@ Please see the [examples][6] project for more examples. Please refer to the
 [6]: https://github.com/chromedp/examples
 [7]: https://godoc.org/github.com/chromedp/chromedp
 [8]: https://www.youtube.com/watch?v=_7pWCg94sKw
-[9]: https://godoc.org/github.com/chromedp/cdproto
-[10]: https://github.com/chromedp/cdproto-gen
+[9]: https://godoc.org/bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto
+[10]: https://bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto-gen
 [11]: https://github.com/chromedp/chromedp-proxy
 [12]: https://github.com/chromedp/chromedp/
