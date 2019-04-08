@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -49,7 +48,7 @@ func ExampleExecAllocator() {
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
 
-	taskCtx, cancel := chromedp.NewContext(allocCtx, nil)
+	taskCtx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
 	// ensure that the browser process is started

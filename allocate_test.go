@@ -15,7 +15,7 @@ func TestExecAllocator(t *testing.T) {
 	// TODO: test that multiple child contexts are run in different
 	// processes and browsers.
 
-	taskCtx, cancel := NewContext(poolCtx, nil)
+	taskCtx, cancel := NewContext(poolCtx)
 	defer cancel()
 
 	want := "insert"
@@ -47,7 +47,7 @@ func TestExecAllocatorCancelParent(t *testing.T) {
 	// TODO: test that multiple child contexts are run in different
 	// processes and browsers.
 
-	taskCtx, _ := NewContext(poolCtx, nil)
+	taskCtx, _ := NewContext(poolCtx)
 	if err := Run(taskCtx); err != nil {
 		t.Fatal(err)
 	}

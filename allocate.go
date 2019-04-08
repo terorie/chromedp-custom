@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 )
 
 // An Allocator is responsible for creating and managing a number of browsers.
