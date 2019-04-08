@@ -2,9 +2,12 @@ package chromedp
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"strings"
+	"sync/atomic"
+	"time"
 
 	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
 	"github.com/gorilla/websocket"
@@ -28,6 +31,7 @@ type Transport interface {
 // Conn wraps a gorilla/websocket.Conn connection.
 type Conn struct {
 	*websocket.Conn
+	messagesLastTick uint64
 }
 
 // Read reads the next message.
@@ -41,6 +45,7 @@ func (c *Conn) Read() (*cdproto.Message, error) {
 
 // Write writes a message.
 func (c *Conn) Write(msg *cdproto.Message) error {
+	atomic.AddUint64(&c.messagesLastTick, 1)
 	return c.WriteJSON(msg)
 }
 
@@ -57,7 +62,7 @@ func DialContext(ctx context.Context, urlstr string) (*Conn, error) {
 		return nil, err
 	}
 
-	return &Conn{conn}, nil
+	return &Conn{Conn: conn}, nil
 }
 
 // ForceIP forces the host component in urlstr to be an IP address.
@@ -79,4 +84,18 @@ func ForceIP(urlstr string) string {
 		}
 	}
 	return urlstr
+}
+
+func (c *Conn) Watch(ctx context.Context, logger *logrus.Logger) {
+	dur := 2 * time.Second
+	for {
+		select {
+		case <-time.After(dur):
+			msgLastTick := atomic.SwapUint64(&c.messagesLastTick, 0)
+			rate := float64(msgLastTick) / dur.Seconds()
+			logger.WithField("msg_per_sec", rate).Info("Conn stats")
+		case <-ctx.Done():
+			return
+		}
+	}
 }

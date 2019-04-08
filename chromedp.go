@@ -9,6 +9,7 @@ package chromedp
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 
@@ -214,6 +215,10 @@ func WithLogf(f func(string, ...interface{})) ContextOption {
 // WithErrorf is a shortcut for WithBrowserOption(WithBrowserErrorf(f)).
 func WithErrorf(f func(string, ...interface{})) ContextOption {
 	return WithBrowserOption(WithBrowserErrorf(f))
+}
+
+func WithConnLogger(log *logrus.Logger) ContextOption {
+	return WithBrowserOption(WithBrowserConnLogger(log))
 }
 
 // WithBrowserOption allows passing a number of browser options to the allocator

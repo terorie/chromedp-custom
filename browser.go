@@ -3,6 +3,7 @@ package chromedp
 import (
 	"context"
 	"encoding/json"
+	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"sync/atomic"
@@ -330,6 +331,12 @@ func WithBrowserLogf(f func(string, ...interface{})) BrowserOption {
 // WithBrowserErrorf is a browser option to specify a func to receive error logging.
 func WithBrowserErrorf(f func(string, ...interface{})) BrowserOption {
 	return func(b *Browser) { b.errf = f }
+}
+
+func WithBrowserConnLogger(log *logrus.Logger) BrowserOption {
+	return func(b *Browser) {
+		b.conn.(*Conn).Watch(context.Background(), log)
+	}
 }
 
 // WithConsolef is a browser option to specify a func to receive chrome log events.
