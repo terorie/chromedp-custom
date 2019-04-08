@@ -55,7 +55,7 @@ func (t *Target) run(ctx context.Context) {
 			}
 		default:
 			// prevent busy spinning. TODO: do better
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 			n := len(t.waitQueue)
 			if n == 0 {
 				continue

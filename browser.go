@@ -310,6 +310,8 @@ func (b *Browser) run(ctx context.Context) {
 				// useful for CommandSendMessageToTarget.
 				continue
 			}
+			j, _ := q.msg.Params.MarshalJSON()
+			println(string(j))
 			if err := b.conn.Write(q.msg); err != nil {
 				b.errf("%s", err)
 				continue
