@@ -217,8 +217,8 @@ func WithErrorf(f func(string, ...interface{})) ContextOption {
 	return WithBrowserOption(WithBrowserErrorf(f))
 }
 
-func WithConnLogger(log *logrus.Logger) ContextOption {
-	return WithBrowserOption(WithBrowserConnLogger(log))
+func WithConnLogger(log *logrus.Logger, interval time.Duration) ContextOption {
+	return WithBrowserOption(WithBrowserConnLogger(log, interval))
 }
 
 // WithBrowserOption allows passing a number of browser options to the allocator

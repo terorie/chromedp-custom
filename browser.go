@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"sync/atomic"
+	"time"
 
 	"github.com/mailru/easyjson"
 
@@ -333,9 +334,9 @@ func WithBrowserErrorf(f func(string, ...interface{})) BrowserOption {
 	return func(b *Browser) { b.errf = f }
 }
 
-func WithBrowserConnLogger(log *logrus.Logger) BrowserOption {
+func WithBrowserConnLogger(log *logrus.Logger, interval time.Duration) BrowserOption {
 	return func(b *Browser) {
-		b.conn.(*Conn).Watch(context.Background(), log)
+		go b.conn.(*Conn).Watch(context.Background(), log, interval)
 	}
 }
 

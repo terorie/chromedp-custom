@@ -86,13 +86,12 @@ func ForceIP(urlstr string) string {
 	return urlstr
 }
 
-func (c *Conn) Watch(ctx context.Context, logger *logrus.Logger) {
-	dur := 2 * time.Second
+func (c *Conn) Watch(ctx context.Context, logger *logrus.Logger, interval time.Duration) {
 	for {
 		select {
-		case <-time.After(dur):
+		case <-time.After(interval):
 			msgLastTick := atomic.SwapUint64(&c.messagesLastTick, 0)
-			rate := float64(msgLastTick) / dur.Seconds()
+			rate := float64(msgLastTick) / interval.Seconds()
 			logger.WithField("msg_per_sec", rate).Info("Conn stats")
 		case <-ctx.Done():
 			return
