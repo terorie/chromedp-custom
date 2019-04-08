@@ -1,15 +1,10 @@
-// Package chromedp is a high level Chrome DevTools Protocol client that
-// simplifies driving browsers for scraping, unit testing, or profiling web
-// pages using the CDP.
-//
-// chromedp requires no third-party dependencies, implementing the async Chrome
-// DevTools Protocol entirely in Go.
 package chromedp
 
 import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"sync/atomic"
 
 	"github.com/mailru/easyjson"
@@ -24,8 +19,6 @@ import (
 // the browser process runner, WebSocket clients, associated targets, and
 // network, page, and DOM events.
 type Browser struct {
-	userDataDir string
-
 	conn Transport
 
 	// next is the next message id.
@@ -34,7 +27,7 @@ type Browser struct {
 	// tabQueue is the queue used to create new target handlers, once a new
 	// tab is created and attached to. The newly created Target is sent back
 	// via tabResult.
-	tabQueue  chan target.SessionID
+	tabQueue  chan newTab
 	tabResult chan *Target
 
 	// cmdQueue is the outgoing command queue.
@@ -43,6 +36,21 @@ type Browser struct {
 	// logging funcs
 	logf func(string, ...interface{})
 	errf func(string, ...interface{})
+
+	// The optional fields below are helpful for some tests.
+
+	// process can be initialized by the allocators which start a process
+	// when allocating a browser.
+	process *os.Process
+
+	// userDataDir can be initialized by the allocators which set up user
+	// data dirs directly.
+	userDataDir string
+}
+
+type newTab struct {
+	targetID  target.ID
+	sessionID target.SessionID
 }
 
 type cmdJob struct {
@@ -60,7 +68,7 @@ func NewBrowser(ctx context.Context, urlstr string, opts ...BrowserOption) (*Bro
 	b := &Browser{
 		conn: conn,
 
-		tabQueue:  make(chan target.SessionID, 1),
+		tabQueue:  make(chan newTab, 1),
 		tabResult: make(chan *Target, 1),
 
 		cmdQueue: make(chan cmdJob),
@@ -70,9 +78,7 @@ func NewBrowser(ctx context.Context, urlstr string, opts ...BrowserOption) (*Bro
 
 	// apply options
 	for _, o := range opts {
-		if err := o(b); err != nil {
-			return nil, err
-		}
+		o(b)
 	}
 
 	// ensure errf is set
@@ -105,11 +111,14 @@ func (b *Browser) send(method cdproto.MethodType, params easyjson.RawMessage) er
 	return b.conn.Write(msg)
 }
 
-func (b *Browser) newExecutorForTarget(ctx context.Context, sessionID target.SessionID) *Target {
+func (b *Browser) newExecutorForTarget(ctx context.Context, targetID target.ID, sessionID target.SessionID) *Target {
+	if targetID == "" {
+		panic("empty target ID")
+	}
 	if sessionID == "" {
 		panic("empty session ID")
 	}
-	b.tabQueue <- sessionID
+	b.tabQueue <- newTab{targetID, sessionID}
 	return <-b.tabResult
 }
 
@@ -156,9 +165,7 @@ type tabEvent struct {
 func (b *Browser) run(ctx context.Context) {
 	defer b.conn.Close()
 
-	// add cancel to context
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	cancel := FromContext(ctx).cancel
 
 	// tabEventQueue is the queue of incoming target events, to be routed by
 	// their session ID.
@@ -171,10 +178,13 @@ func (b *Browser) run(ctx context.Context) {
 	// connection. The separate goroutine is needed since a websocket read
 	// is blocking, so it cannot be used in a select statement.
 	go func() {
-		defer cancel()
 		for {
 			msg, err := b.conn.Read()
 			if err != nil {
+				// If the websocket failed, most likely Chrome
+				// was closed or crashed. Cancel the entire
+				// Browser context to stop all activity.
+				cancel()
 				return
 			}
 			if msg.Method == cdproto.EventRuntimeExceptionThrown {
@@ -224,20 +234,19 @@ func (b *Browser) run(ctx context.Context) {
 	// This goroutine handles tabs, as well as routing events to each tab
 	// via the pages map.
 	go func() {
-		defer cancel()
-
 		// This map is only safe for use within this goroutine, so don't
 		// declare it as a Browser field.
 		pages := make(map[target.SessionID]*Target, 1024)
 		for {
 			select {
-			case sessionID := <-b.tabQueue:
-				if _, ok := pages[sessionID]; ok {
-					b.errf("executor for %q already exists", sessionID)
+			case tab := <-b.tabQueue:
+				if _, ok := pages[tab.sessionID]; ok {
+					b.errf("executor for %q already exists", tab.sessionID)
 				}
 				t := &Target{
 					browser:   b,
-					SessionID: sessionID,
+					TargetID:  tab.targetID,
+					SessionID: tab.sessionID,
 
 					eventQueue: make(chan *cdproto.Message, 999999),
 					waitQueue:  make(chan func(cur *cdp.Frame) bool, 999999),
@@ -247,7 +256,7 @@ func (b *Browser) run(ctx context.Context) {
 					errf: b.errf,
 				}
 				go t.run(ctx)
-				pages[sessionID] = t
+				pages[tab.sessionID] = t
 				b.tabResult <- t
 			case event := <-tabEventQueue:
 				page, ok := pages[event.sessionID]
@@ -311,29 +320,22 @@ func (b *Browser) run(ctx context.Context) {
 }
 
 // BrowserOption is a browser option.
-type BrowserOption func(*Browser) error
+type BrowserOption func(*Browser)
 
-// WithLogf is a browser option to specify a func to receive general logging.
-func WithLogf(f func(string, ...interface{})) BrowserOption {
-	return func(b *Browser) error {
-		b.logf = f
-		return nil
-	}
+// WithBrowserLogf is a browser option to specify a func to receive general logging.
+func WithBrowserLogf(f func(string, ...interface{})) BrowserOption {
+	return func(b *Browser) { b.logf = f }
 }
 
-// WithErrorf is a browser option to specify a func to receive error logging.
-func WithErrorf(f func(string, ...interface{})) BrowserOption {
-	return func(b *Browser) error {
-		b.errf = f
-		return nil
-	}
+// WithBrowserErrorf is a browser option to specify a func to receive error logging.
+func WithBrowserErrorf(f func(string, ...interface{})) BrowserOption {
+	return func(b *Browser) { b.errf = f }
 }
 
 // WithConsolef is a browser option to specify a func to receive chrome log events.
 //
 // Note: NOT YET IMPLEMENTED.
 func WithConsolef(f func(string, ...interface{})) BrowserOption {
-	return func(b *Browser) error {
-		return nil
+	return func(b *Browser) {
 	}
 }

@@ -5,12 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
-	"time"
 )
 
 // An Allocator is responsible for creating and managing a number of browsers.
@@ -22,44 +20,44 @@ type Allocator interface {
 	// Allocate creates a new browser. It can be cancelled via the provided
 	// context, at which point all the resources used by the browser (such
 	// as temporary directories) will be freed.
-	Allocate(context.Context) (*Browser, error)
+	Allocate(context.Context, ...BrowserOption) (*Browser, error)
 
-	// Wait can be called after cancelling an allocator's context, to block
-	// until all of its resources have been freed.
+	// TODO: Wait should probably return an error, which can then be
+	// retrieved by the user if just calling cancel().
+
+	// Wait blocks until an allocator has freed all of its resources.
+	// Cancelling the context obtained via NewAllocator will already perform
+	// this operation, so normally there's no need to call Wait directly.
 	Wait()
 }
 
-// NewAllocator creates a new allocator context, suitable for use with
-// NewContext or Run.
-func NewAllocator(parent context.Context, opts ...AllocatorOption) (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(parent)
-	c := &Context{}
-
-	for _, o := range opts {
-		o(&c.Allocator)
+// setupExecAllocator is similar to NewExecAllocator, but it allows NewContext
+// to create the allocator without the unnecessary context layer.
+func setupExecAllocator(opts ...ExecAllocatorOption) *ExecAllocator {
+	ep := &ExecAllocator{
+		initFlags: make(map[string]interface{}),
 	}
-
-	ctx = context.WithValue(ctx, contextKey{}, c)
-	return ctx, cancel
+	for _, o := range opts {
+		o(ep)
+	}
+	if ep.execPath == "" {
+		ep.execPath = findExecPath()
+	}
+	return ep
 }
 
-// AllocatorOption is a allocator option.
-type AllocatorOption func(*Allocator)
+// NewExecAllocator creates a new context set up with an ExecAllocator, suitable
+// for use with NewContext or Run.
+func NewExecAllocator(parent context.Context, opts ...ExecAllocatorOption) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(parent)
+	c := &Context{Allocator: setupExecAllocator(opts...)}
 
-// WithExecAllocator returns an AllocatorOption which sets up an ExecAllocator.
-func WithExecAllocator(opts ...ExecAllocatorOption) func(*Allocator) {
-	return func(p *Allocator) {
-		ep := &ExecAllocator{
-			initFlags: make(map[string]interface{}),
-		}
-		for _, o := range opts {
-			o(ep)
-		}
-		if ep.execPath == "" {
-			ep.execPath = findExecPath()
-		}
-		*p = ep
+	ctx = context.WithValue(ctx, contextKey{}, c)
+	cancelWait := func() {
+		cancel()
+		c.Allocator.Wait()
 	}
+	return ctx, cancelWait
 }
 
 // ExecAllocatorOption is a exec allocator option.
@@ -75,7 +73,12 @@ type ExecAllocator struct {
 }
 
 // Allocate satisfies the Allocator interface.
-func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
+func (p *ExecAllocator) Allocate(ctx context.Context, opts ...BrowserOption) (*Browser, error) {
+	c := FromContext(ctx)
+	if c == nil {
+		return nil, ErrInvalidContext
+	}
+
 	var args []string
 	for name, value := range p.initFlags {
 		switch value := value.(type) {
@@ -104,7 +107,8 @@ func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 	args = append(args, "--remote-debugging-port=0")
 
 	var cmd *exec.Cmd
-	p.wg.Add(1)
+	p.wg.Add(1) // for the entire allocator
+	c.wg.Add(1) // for this browser's root context
 	go func() {
 		<-ctx.Done()
 		// First wait for the process to be finished.
@@ -116,7 +120,12 @@ func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 			os.RemoveAll(dataDir)
 		}
 		p.wg.Done()
+		c.wg.Done()
 	}()
+
+	// force the first page to be blank, instead of the welcome page
+	// TODO: why isn't --no-first-run enough?
+	args = append(args, "about:blank")
 
 	cmd = exec.CommandContext(ctx, p.execPath, args...)
 	stderr, err := cmd.StderrPipe()
@@ -147,17 +156,11 @@ func (p *ExecAllocator) Allocate(ctx context.Context) (*Browser, error) {
 		go chromeScavenger(wsURL, dataDir)
 	}
 
-
-	var browserOpts []BrowserOption
-	c := FromContext(ctx)
-	if c != nil {
-		browserOpts = c.browserOptions
-	}
-
-	browser, err := NewBrowser(ctx, wsURL, browserOpts...)
+	browser, err := NewBrowser(ctx, wsURL, opts...)
 	if err != nil {
 		return nil, err
 	}
+	browser.process = cmd.Process
 	browser.userDataDir = dataDir
 	return browser, nil
 }

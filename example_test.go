@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func ExampleTitle() {
-	ctx, cancel := chromedp.NewContext(context.Background(), nil)
+	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
 	var title string
@@ -25,10 +26,6 @@ func ExampleTitle() {
 	}
 
 	fmt.Println(title)
-
-	// wait for the resources to be cleaned up
-	cancel()
-	chromedp.FromContext(ctx).Allocator.Wait()
 
 	// no expected output, to not run this test as part of 'go test'; it's
 	// too slow, requiring internet access.
@@ -49,8 +46,7 @@ func ExampleExecAllocator() {
 		chromedp.UserDataDir(dir),
 	}
 
-	allocCtx, cancel := chromedp.NewAllocator(context.Background(),
-		chromedp.WithExecAllocator(opts...))
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
 
 	taskCtx, cancel := chromedp.NewContext(allocCtx, nil)
@@ -69,17 +65,13 @@ func ExampleExecAllocator() {
 	lines := bytes.Split(bs, []byte("\n"))
 	fmt.Printf("DevToolsActivePort has %d lines\n", len(lines))
 
-	// wait for the resources to be cleaned up
-	cancel()
-	chromedp.FromContext(allocCtx).Allocator.Wait()
-
 	// Output:
 	// DevToolsActivePort has 2 lines
 }
 
 func ExampleNewContext_manyTabs() {
 	// new browser, first tab
-	ctx1, cancel := chromedp.NewContext(context.Background(), nil)
+	ctx1, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
 	// ensure the first tab is created
@@ -88,7 +80,7 @@ func ExampleNewContext_manyTabs() {
 	}
 
 	// same browser, second tab
-	ctx2, _ := chromedp.NewContext(ctx1, nil)
+	ctx2, _ := chromedp.NewContext(ctx1)
 
 	// ensure the second tab is created
 	if err := chromedp.Run(ctx2); err != nil {
@@ -100,10 +92,6 @@ func ExampleNewContext_manyTabs() {
 
 	fmt.Printf("Same browser: %t\n", c1.Browser == c2.Browser)
 	fmt.Printf("Same tab: %t\n", c1.Target == c2.Target)
-
-	// wait for the resources to be cleaned up
-	cancel()
-	c1.Allocator.Wait()
 
 	// Output:
 	// Same browser: true
