@@ -9,8 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mailru/easyjson"
-
 	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
 	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/cdp"
 	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto/runtime"
@@ -38,6 +36,7 @@ type Browser struct {
 	// logging funcs
 	logf func(string, ...interface{})
 	errf func(string, ...interface{})
+	dbgf func(string, ...interface{})
 
 	// The optional fields below are helpful for some tests.
 
@@ -62,55 +61,30 @@ type cmdJob struct {
 
 // NewBrowser creates a new browser.
 func NewBrowser(ctx context.Context, urlstr string, opts ...BrowserOption) (*Browser, error) {
-	conn, err := DialContext(ctx, ForceIP(urlstr))
-	if err != nil {
-		return nil, err
-	}
-
 	b := &Browser{
-		conn: conn,
-
 		tabQueue:  make(chan newTab, 1),
 		tabResult: make(chan *Target, 1),
-
-		cmdQueue: make(chan cmdJob),
-
-		logf: log.Printf,
+		cmdQueue:  make(chan cmdJob),
+		logf:      log.Printf,
 	}
-
 	// apply options
 	for _, o := range opts {
 		o(b)
 	}
-
 	// ensure errf is set
 	if b.errf == nil {
 		b.errf = func(s string, v ...interface{}) { b.logf("ERROR: "+s, v...) }
 	}
 
+	// dial
+	var err error
+	b.conn, err = DialContext(ctx, ForceIP(urlstr), WithConnDebugf(b.dbgf))
+	if err != nil {
+		return nil, err
+	}
+
 	go b.run(ctx)
 	return b, nil
-}
-
-// Shutdown shuts down the browser.
-func (b *Browser) Shutdown() error {
-	if b.conn != nil {
-		if err := b.send(cdproto.CommandBrowserClose, nil); err != nil {
-			b.errf("could not close browser: %v", err)
-		}
-		return b.conn.Close()
-	}
-	return nil
-}
-
-// send writes the supplied message and params.
-func (b *Browser) send(method cdproto.MethodType, params easyjson.RawMessage) error {
-	msg := &cdproto.Message{
-		ID:     atomic.AddInt64(&b.next, 1),
-		Method: method,
-		Params: params,
-	}
-	return b.conn.Write(msg)
 }
 
 func (b *Browser) newExecutorForTarget(ctx context.Context, targetID target.ID, sessionID target.SessionID) *Target {
@@ -250,8 +224,8 @@ func (b *Browser) run(ctx context.Context) {
 					TargetID:  tab.targetID,
 					SessionID: tab.sessionID,
 
-					eventQueue: make(chan *cdproto.Message, 999999),
-					waitQueue:  make(chan func(cur *cdp.Frame) bool, 999999),
+					eventQueue: make(chan *cdproto.Message, 1024),
+					waitQueue:  make(chan func(cur *cdp.Frame) bool, 1024),
 					frames:     make(map[cdp.FrameID]*cdp.Frame),
 
 					logf: b.logf,
@@ -310,8 +284,6 @@ func (b *Browser) run(ctx context.Context) {
 				// useful for CommandSendMessageToTarget.
 				continue
 			}
-			j, _ := q.msg.Params.MarshalJSON()
-			println(string(j))
 			if err := b.conn.Write(q.msg); err != nil {
 				b.errf("%s", err)
 				continue
@@ -334,6 +306,12 @@ func WithBrowserLogf(f func(string, ...interface{})) BrowserOption {
 // WithBrowserErrorf is a browser option to specify a func to receive error logging.
 func WithBrowserErrorf(f func(string, ...interface{})) BrowserOption {
 	return func(b *Browser) { b.errf = f }
+}
+
+// WithBrowserDebugf is a browser option to specify a func to log actual
+// websocket messages.
+func WithBrowserDebugf(f func(string, ...interface{})) BrowserOption {
+	return func(b *Browser) { b.dbgf = f }
 }
 
 func WithBrowserConnLogger(log *logrus.Logger, interval time.Duration) BrowserOption {

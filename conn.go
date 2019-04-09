@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -11,6 +12,7 @@ import (
 
 	"bitbucket.org/ShipwrightTibi/chromecrawlingnew/cdproto"
 	"github.com/gorilla/websocket"
+	"github.com/mailru/easyjson"
 )
 
 var (
@@ -31,26 +33,12 @@ type Transport interface {
 // Conn wraps a gorilla/websocket.Conn connection.
 type Conn struct {
 	*websocket.Conn
+	dbgf func(string, ...interface{})
 	messagesLastTick uint64
 }
 
-// Read reads the next message.
-func (c *Conn) Read() (*cdproto.Message, error) {
-	msg := new(cdproto.Message)
-	if err := c.ReadJSON(msg); err != nil {
-		return nil, err
-	}
-	return msg, nil
-}
-
-// Write writes a message.
-func (c *Conn) Write(msg *cdproto.Message) error {
-	atomic.AddUint64(&c.messagesLastTick, 1)
-	return c.WriteJSON(msg)
-}
-
 // DialContext dials the specified websocket URL using gorilla/websocket.
-func DialContext(ctx context.Context, urlstr string) (*Conn, error) {
+func DialContext(ctx context.Context, urlstr string, opts ...DialOption) (*Conn, error) {
 	d := &websocket.Dialer{
 		ReadBufferSize:  DefaultReadBufferSize,
 		WriteBufferSize: DefaultWriteBufferSize,
@@ -62,7 +50,80 @@ func DialContext(ctx context.Context, urlstr string) (*Conn, error) {
 		return nil, err
 	}
 
-	return &Conn{Conn: conn}, nil
+	// apply opts
+	c := &Conn{
+		Conn: conn,
+	}
+	for _, o := range opts {
+		o(c)
+	}
+
+	return c, nil
+}
+
+// Read reads the next message.
+func (c *Conn) Read() (*cdproto.Message, error) {
+	// get websocket reader
+	typ, r, err := c.NextReader()
+	if err != nil {
+		return nil, err
+	}
+	if typ != websocket.TextMessage {
+		return nil, ErrInvalidWebsocketMessage
+	}
+
+	// when dbgf defined, buffer, log, unmarshal
+	if c.dbgf != nil {
+		// buffer output
+		buf, err := ioutil.ReadAll(r)
+		if err != nil {
+			return nil, err
+		}
+		c.dbgf("<- %s", string(buf))
+		msg := new(cdproto.Message)
+		if err = easyjson.Unmarshal(buf, msg); err != nil {
+			return nil, err
+		}
+		return msg, nil
+	}
+
+	// unmarshal direct from reader
+	msg := new(cdproto.Message)
+	if err = easyjson.UnmarshalFromReader(r, msg); err != nil {
+		return nil, err
+	}
+	return msg, nil
+}
+
+// Write writes a message.
+func (c *Conn) Write(msg *cdproto.Message) error {
+	w, err := c.NextWriter(websocket.TextMessage)
+	if err != nil {
+		return err
+	}
+
+	atomic.AddUint64(&c.messagesLastTick, 1)
+
+	if c.dbgf != nil {
+		var buf []byte
+		buf, err = easyjson.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		c.dbgf("-> %s", string(buf))
+		_, err = w.Write(buf)
+		if err != nil {
+			return err
+		}
+	} else {
+		// direct marshal
+		_, err = easyjson.MarshalToWriter(msg, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	return w.Close()
 }
 
 // ForceIP forces the host component in urlstr to be an IP address.
@@ -96,5 +157,15 @@ func (c *Conn) Watch(ctx context.Context, logger *logrus.Logger, interval time.D
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+// DialOption is a dial option.
+type DialOption func(*Conn)
+
+// WithConnDebugf is a dial option to set a protocol logger.
+func WithConnDebugf(f func(string, ...interface{})) DialOption {
+	return func(c *Conn) {
+		c.dbgf = f
 	}
 }
