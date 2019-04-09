@@ -67,10 +67,6 @@ func NewBrowser(ctx context.Context, urlstr string, opts ...BrowserOption) (*Bro
 		cmdQueue:  make(chan cmdJob),
 		logf:      log.Printf,
 	}
-	// apply options
-	for _, o := range opts {
-		o(b)
-	}
 	// ensure errf is set
 	if b.errf == nil {
 		b.errf = func(s string, v ...interface{}) { b.logf("ERROR: "+s, v...) }
@@ -81,6 +77,11 @@ func NewBrowser(ctx context.Context, urlstr string, opts ...BrowserOption) (*Bro
 	b.conn, err = DialContext(ctx, ForceIP(urlstr), WithConnDebugf(b.dbgf))
 	if err != nil {
 		return nil, err
+	}
+
+	// apply options
+	for _, o := range opts {
+		o(b)
 	}
 
 	go b.run(ctx)
