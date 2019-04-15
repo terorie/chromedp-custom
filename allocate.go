@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -286,7 +287,13 @@ func DisableGPU(p *ExecAllocator) {
 }
 
 // Watches a Chrome instance and deletes its user data dir as soon as it dies
-func chromeScavenger(dial string, userDataDir string) error {
+func chromeScavenger(ws string, userDataDir string) error {
+	u, err := url.Parse(ws)
+	if err != nil {
+		return err
+	}
+	dial := u.Host
+
 	// Periodically connect to Chrome
 	for {
 		conn, err := net.Dial("tcp", dial)
